@@ -61,9 +61,6 @@ $RECYCLE.BIN/
 
 # 9. CREDENTIALS - L'important bzaf!
 # Ma npushiwch ay haja fiha password
-*password*
-*secret*
-*credentials*
 application-local.yml
 application-secret.yml
 
