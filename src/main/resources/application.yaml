@@ -4,17 +4,29 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/premium_essai_db
     username: postgres
-    password: postgres
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
@@ -24,3 +36,4 @@ server:
 logging:
   level:
     com.premium.essai: DEBUG
+    org.hibernate.SQL: DEBUG
