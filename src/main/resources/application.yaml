@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: premium-essai-manager
+  datasource:
+    url: jdbc:postgresql://localhost:5432/premium_essai_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    com.premium.essai: DEBUG
