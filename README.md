@@ -13,6 +13,18 @@
 **Premium Essai Manager** is a modern HR & Trial Management System built with a premium **Red & Black** design.
 It manages **Directions**, **Responsables**, and **Salariés** with full CRUD.
 
+### 🔴 Role in HR Audit
+
+Development of an internal application designed to automate the auditing of probation periods, including:
+
+- Automatic calculation of the 2-month and 5-month deadlines
+- Automatic detection of overdue evaluations after 2 days
+- Generation of employee evaluations
+- Monitoring of probation periods
+- Management of employees and managers
+- Email reminders and notification tracking
+
+
 > Module 1: Organizational Structure
 
 ### 🔴 Tech Stack

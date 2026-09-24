@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Neutral, Elegant, Apple-inspired Executive Palette (Easy on the eyes) */
+  --background: #fbfbfb;
+  --foreground: #18181b;
+  
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  
+  /* Primary: Subtle, Elegant Burgundy Red (Groupe Premium) */
+  --primary: #8b1d1d;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #f4f4f5;
+  --secondary-foreground: #27272a;
+  
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  
+  /* Soft, Non-aggressive Alert Red */
+  --destructive: #be123c;
+  --destructive-foreground: #ffffff;
+  
+  /* Subtle, delicate borders */
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #8b1d1d;
+  
+  --radius: 0.875rem;
+
+  /* Restrained, soft pastel tokens (not harsh or saturated) */
+  --apple-blue: #3b82f6;
+  --apple-blue-subtle: #f8fafc;
+  --apple-green: #059669;
+  --apple-green-subtle: #f0fdf4;
+  --apple-orange: #d97706;
+  --apple-orange-subtle: #fffbeb;
+  --apple-red: #be123c;
+  --apple-red-subtle: #fff1f2;
+  --apple-purple: #6b7280;
+  --apple-purple-subtle: #f9fafb;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-apple-blue: var(--apple-blue);
+  --color-apple-blue-subtle: var(--apple-blue-subtle);
+  --color-apple-green: var(--apple-green);
+  --color-apple-green-subtle: var(--apple-green-subtle);
+  --color-apple-orange: var(--apple-orange);
+  --color-apple-orange-subtle: var(--apple-orange-subtle);
+  --color-apple-red: var(--apple-red);
+  --color-apple-red-subtle: var(--apple-red-subtle);
+  --color-apple-purple: var(--apple-purple);
+  --color-apple-purple-subtle: var(--apple-purple-subtle);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, -apple-system, sans-serif;
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, -apple-system, sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-xl: var(--radius);
+  --radius-lg: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 6px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Smooth Typography & Crisp Neutral Rendering */
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Subtle, elegant scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+@layer components {
+
+  .btn-gradient {
+    @apply bg-linear-to-l from-red-600 via-red-900 to-rose-950 text-white
+           backdrop-blur-2xl
+           border border-white/20
+           ring-1 ring-white/10
+           hover:scale-[1.02]
+           active:scale-[0.98]
+           transition-all duration-300
+           relative overflow-hidden;
+    cursor: pointer;
+  }
+
+  .btn-gradient::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 70%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.7s ease;
+  }
+
+  .btn-gradient:hover::before {
+    transform: translateX(100%);
+    cursor: pointer;
+  }
+
+}
+
