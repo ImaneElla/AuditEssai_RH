@@ -23,8 +23,6 @@ Development of an internal application designed to automate the auditing of prob
 - Monitoring of probation periods
 - Management of employees and managers
 - Email reminders and notification tracking
-
-
 > Module 1: Organizational Structure
 
 ### 🔴 Tech Stack

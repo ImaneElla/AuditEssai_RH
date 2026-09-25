@@ -37,7 +37,7 @@ export default function RetardsScreen() {
             className="flex items-center gap-2 shadow-xs cursor-pointer shrink-0"
           >
             <Send className="w-4 h-4" strokeWidth={1.75} />
-            <span>Relancer tous les managers ({retards.length})</span>
+            <span>Relancer tous les Responsables ({retards.length})</span>
           </Button>
         )}
       </div>

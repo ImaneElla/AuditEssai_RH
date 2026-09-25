@@ -479,7 +479,7 @@ export const initialEmails: HistoriqueEmail[] = [
     heureEnvoi: "09:00:00",
     statut: "OUVERT",
     batchCron: true,
-    contenuCorps: `Convocation d'évaluation intermédiaire transmise au manager Luc Bertrand pour le collaborateur Maxime Faure.`
+    contenuCorps: `Convocation d'évaluation intermédiaire transmise au Responsable Luc Bertrand pour le collaborateur Maxime Faure.`
   },
   {
     id: 6,
@@ -502,7 +502,7 @@ export const initialNotifications: NotificationItem[] = [
   {
     id: 1,
     titre: "Retard Critique (+6 jours) - Bilan 2 mois",
-    message: "Le manager Marc Delattre n'a pas complété le formulaire pour Thomas Bernard. Relance automatique déclenchée.",
+    message: "Le Responsable Marc Delattre n'a pas complété le formulaire pour Thomas Bernard. Relance automatique déclenchée.",
     type: "RETARD",
     priorite: "URGENTE",
     dateCreation: "2026-09-23",

@@ -88,7 +88,17 @@ export default function Header() {
         return "Centre de Notifications & Alertes";
 
       case "responsables":
+      case "gestion-responsable":
         return "Annuaire des Responsables";
+
+      case "ajouter-responsable":
+        return "Ajouter un Responsable";
+
+      case "dashboard-responsable":
+        return "Tableau de Bord Manager";
+
+      case "moteur":
+        return "Moteur d'Automatisation & Règles Système";
 
       default:
         return "Groupe Premium - Essai Manager";
@@ -133,6 +143,7 @@ export default function Header() {
           z-30
           shadow-2xs
           font-sans
+          print:hidden
         "
       >
         {/* ======================================================
@@ -650,6 +661,7 @@ export default function Header() {
             animate-in
             slide-in-from-bottom-5
             duration-200
+            print:hidden
           "
         >
 

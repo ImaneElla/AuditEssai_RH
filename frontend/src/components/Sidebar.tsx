@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp, ScreenId } from '../context/AppContext';
 import {
   LayoutDashboard,
@@ -12,7 +12,6 @@ import {
   Bell,
   Briefcase,
   BriefcaseBusiness,
-  Clock,
   ShieldCheck,
   ChevronRight,
   ChevronDown,
@@ -42,18 +41,17 @@ export default function Sidebar() {
   const primaryItems = [
     { id: 'dashboard', label: isRH ? 'Tableau de Bord RH' : 'Tableau de Bord', icon: LayoutDashboard, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'salaries', label: isRH ? 'Gestion des salariés' : 'Mes salariés affectés', icon: Users, badge: isRH ? enCoursCount : salaries.length, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
-    { id: 'periodes', label: isRH ? 'Périodes d\'évaluation' : 'Évaluations à réaliser', icon: CalendarCheck, badge: isRH ? '2m & 5m' : periodes.filter(p => p.statut !== 'VALIDEE_RH').length, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
+    { id: 'periodes', label: isRH ? 'Périodes d\'évaluation' : 'Évaluations à réaliser', icon: CalendarCheck, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'retards', label: isRH ? 'Suivi des retards' : 'Retards équipe', icon: AlertTriangle, badge: retardsCount > 0 ? `${retardsCount}` : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotifsCount > 0 ? unreadNotifsCount : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
   ] as any;
 
-  const adminItems = [
+  const adminItems: { id: ScreenId; label: string; icon: typeof UserPlus }[] = [
     { id: 'ajouter-salarie', label: 'Ajouter un salarié', icon: UserPlus },
-    { id: 'moteur', label: 'Moteur automatique', icon: Clock, badge: '09:00' },
     { id: 'emails', label: 'Historique des emails', icon: Mail },
-    { id: 'responsables', label: 'Gestion des responsables', icon: Briefcase },
+    { id: 'gestion-responsable', label: 'Gestion des responsables', icon: Briefcase },
     { id: 'ajouter-responsable', label: 'Ajouter un responsable', icon: BriefcaseBusiness },
-  ] as any;
+  ];
 
   const renderItem = (item: any) => {
     const isActive = currentScreen === item.id;
@@ -108,7 +106,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-72'} bg-white text-zinc-900 border-r border-zinc-200/80 flex flex-col shrink-0 h-screen sticky top-0 select-none font-sans overflow-hidden transition-all duration-300`}>
+    <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-72'} bg-white text-zinc-900 border-r border-zinc-200/80 flex flex-col shrink-0 h-screen sticky top-0 select-none font-sans overflow-hidden transition-all duration-300 print:hidden`}>
 
       {/* Brand Header */}
       <div className={`p-3.5 border-b border-zinc-200/60 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>

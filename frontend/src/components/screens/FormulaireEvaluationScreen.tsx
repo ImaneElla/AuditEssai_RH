@@ -285,7 +285,7 @@ export default function FormulaireEvaluationScreen() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-16 font-sans">
+    <div className="max-w-4xl mx-auto space-y-6 pb-16 font-sans print:max-w-none print:mx-0 print:pb-0 print:space-y-0">
       
       {/* Action Bar (Top Controls) */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-card rounded-2xl border border-border shadow-xs print:hidden">
@@ -363,7 +363,11 @@ export default function FormulaireEvaluationScreen() {
       {/* ========================================================================= */}
       {/* THE OFFICIAL DOCUMENT PAPER CONTAINER                     */}
       {/* ========================================================================= */}
-      <form onSubmit={handleSubmit} className="bg-white text-black shadow-lg border border-zinc-400 p-6 md:p-8 space-y-6 print:border-none print:shadow-none print:p-0">
+      <form
+        id="fiche-evaluation-print"
+        onSubmit={handleSubmit}
+        className="print-document bg-white text-black shadow-lg border border-zinc-400 p-6 md:p-8 space-y-6 print:border-none print:shadow-none print:p-0"
+      >
         
         {/* Document Header Table */}
         <div className="border border-black grid grid-cols-12 text-center text-xs">
@@ -390,9 +394,9 @@ export default function FormulaireEvaluationScreen() {
           </div>
         </div>
 
-        {/* ------------------------------------------------------------- */}
+        {/* ============================================================= */}
         {/* SECTION 1: Renseignements du collaborateur                    */}
-        {/* ------------------------------------------------------------- */}
+        {/* ============================================================== */}
         <div className="space-y-0 border border-black">
           <div className="bg-[#A30000] text-white font-bold text-center py-1.5 uppercase text-xs tracking-wider">
             Renseignements du collaborateur

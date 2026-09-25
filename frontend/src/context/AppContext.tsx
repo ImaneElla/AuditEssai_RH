@@ -36,11 +36,17 @@ export type ScreenId =
   | 'emails'
   | 'moteur'
   | 'notifications'
-  | 'responsables';
+  | 'responsables'
+  | 'ajouter-responsable'
+  | 'gestion-responsable'
+  | 'detail-responsable'
+  | 'dashboard-responsable';
 
 interface AppContextType {
   currentScreen: ScreenId;
-  navigateTo: (screen: ScreenId, params?: { salarieId?: number; periodeId?: number; emailId?: number }) => void;
+  navigateTo: (screen: ScreenId, params?: { salarieId?: number; periodeId?: number; emailId?: number; responsableId?: number }) => void;
+  selectedResponsableId: number;
+  setSelectedResponsableId: (id: number) => void;
   currentRole: UserRole;
   setCurrentRole: (role: UserRole) => void;
   currentUser: User | null;
@@ -82,6 +88,38 @@ interface AppContextType {
     responsableId: number;
     matricule?: string;
   }) => void;
+  updateSalarie: (
+    salarieId: number,
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      poste?: string;
+      responsableId?: number;
+    }
+  ) => void;
+  deleteSalarie: (salarieId: number) => void;
+  addResponsable: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    poste: string;
+    directionId: number;
+  }) => void;
+  updateResponsable: (
+    responsableId: number,
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      poste: string;
+      directionId: number;
+    }
+  ) => void;
+  deleteResponsable: (responsableId: number) => boolean;
   relancerRetard: (periodeId: number) => void;
   relancerTousLesRetards: () => void;
   submitEvaluation: (data: {
@@ -115,6 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentRole, setCurrentRoleState] = useState<UserRole>('ADMIN_RH');
   const [selectedSalarieId, setSelectedSalarieId] = useState<number>(1);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<number>(1);
+  const [selectedResponsableId, setSelectedResponsableId] = useState<number>(1);
   const [selectedEmail, setSelectedEmail] = useState<HistoriqueEmail | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -123,8 +162,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
 
   const [directions] = useState<Direction[]>(initialDirections);
-  const [responsables] = useState<Responsable[]>(initialResponsables);
-  const [users] = useState<User[]>(initialUsers);
+  const [responsables, setResponsables] = useState<Responsable[]>(initialResponsables);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [salariesList, setSalariesList] = useState<Salarie[]>(initialSalaries);
   const [periodesList, setPeriodesList] = useState<PeriodeEvaluation[]>(initialPeriodes);
   const [evaluations, setEvaluations] = useState<EvaluationDetail[]>(initialEvaluations);
@@ -179,9 +218,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const navigateTo = (screen: ScreenId, params?: { salarieId?: number; periodeId?: number; emailId?: number }) => {
+  const navigateTo = (screen: ScreenId, params?: { salarieId?: number; periodeId?: number; emailId?: number; responsableId?: number }) => {
     // Règle métier : Le responsable ne peut PAS accéder aux écrans d'administration RH
-    const rhOnlyScreens: ScreenId[] = ['ajouter-salarie', 'responsables', 'moteur', 'emails'];
+    const rhOnlyScreens: ScreenId[] = [
+      'ajouter-salarie',
+      'responsables',
+      'gestion-responsable',
+      'detail-responsable',
+      'ajouter-responsable',
+      'moteur',
+      'emails',
+    ];
     if (currentRole === 'RESPONSABLE' && rhOnlyScreens.includes(screen)) {
       showToast("Accès restreint : Cette fonctionnalité administrative est réservée à la DRH.");
       setCurrentScreen('dashboard');
@@ -190,6 +237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (params?.salarieId) setSelectedSalarieId(params.salarieId);
     if (params?.periodeId) setSelectedPeriodeId(params.periodeId);
+    if (params?.responsableId) setSelectedResponsableId(params.responsableId);
     if (params?.emailId) {
       const email = emails.find(e => e.id === params.emailId);
       if (email) setSelectedEmail(email);

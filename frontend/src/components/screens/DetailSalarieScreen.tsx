@@ -14,7 +14,10 @@ import {
   ShieldCheck, 
   User, 
   Star,
-  ExternalLink
+  ExternalLink,
+  Pencil,
+  Trash2,
+  X
 } from 'lucide-react';
 import { DecisionPeriode } from '../../types';
 import { Button } from '@/components/ui/button';
@@ -32,7 +35,8 @@ export default function DetailSalarieScreen() {
     openEmailModal, 
     relancerRetard, 
     validerDecisionRH,
-    currentRole 
+    currentRole,
+    setSalaries
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'PARCOURS' | 'EMAILS'>('PARCOURS');
@@ -40,7 +44,23 @@ export default function DetailSalarieScreen() {
   const [decisionType, setDecisionType] = useState<DecisionPeriode>('CONFIRMATION');
   const [decisionMotif, setDecisionMotif] = useState<string>('Période d\'essai concluante, objectifs atteints et pleine intégration dans l\'équipe.');
 
+  // Modales d'édition et de suppression
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+
   const salarie = salaries.find(s => s.id === selectedSalarieId) || salaries[0];
+
+  // État du formulaire de modification
+  const [editFormData, setEditFormData] = useState({
+    firstName: salarie?.firstName || '',
+    lastName: salarie?.lastName || '',
+    email: salarie?.email || '',
+    phone: salarie?.phone || '',
+    poste: salarie?.poste || '',
+    directionName: salarie?.directionName || '',
+    responsableNom: salarie?.responsableNom || ''
+  });
+
   const salariePeriodes = periodes.filter(p => p.salarieId === salarie?.id);
   const salarieEmails = emails.filter(e => e.salarieId === salarie?.id);
 
@@ -63,11 +83,31 @@ export default function DetailSalarieScreen() {
     setShowDecisionModal(false);
   };
 
+  // Soumission des modifications du salarié
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (setSalaries) {
+      setSalaries((prev) =>
+        prev.map((s) => (s.id === salarie.id ? { ...s, ...editFormData } : s))
+      );
+    }
+    setShowEditModal(false);
+  };
+
+  // Confirmation de la suppression du salarié
+  const handleDeleteSalarie = () => {
+    if (setSalaries) {
+      setSalaries((prev) => prev.filter((s) => s.id !== salarie.id));
+    }
+    setShowDeleteModal(false);
+    navigateTo('salaries');
+  };
+
   const isRH = currentRole === 'ADMIN_RH';
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Top navigation back */}
+      {/* Navigation et actions du haut */}
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
@@ -79,16 +119,50 @@ export default function DetailSalarieScreen() {
           <span>Retour à la liste des salariés</span>
         </Button>
 
-        {isRH && (
+        <div className="flex items-center gap-2">
+          {/* Boutons d'édition et suppression */}
           <Button
+            variant="outline"
             size="sm"
-            onClick={() => setShowDecisionModal(true)}
-            className="flex items-center gap-1.5 shadow-xs cursor-pointer"
+            onClick={() => {
+              setEditFormData({
+                firstName: salarie.firstName,
+                lastName: salarie.lastName,
+                email: salarie.email,
+                phone: salarie.phone,
+                poste: salarie.poste,
+                directionName: salarie.directionName,
+                responsableNom: salarie.responsableNom,
+              });
+              setShowEditModal(true);
+            }}
+            className="flex items-center gap-1.5 cursor-pointer text-xs"
           >
-            <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />
-            <span>Valider Décision RH</span>
+            <Pencil className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>Modifier</span>
           </Button>
-        )}
+
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-1.5 cursor-pointer text-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>Supprimer</span>
+          </Button>
+
+          {isRH && (
+            <Button
+              size="sm"
+              onClick={() => setShowDecisionModal(true)}
+              className="flex items-center gap-1.5 shadow-xs cursor-pointer text-xs"
+            >
+              <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />
+              <span>Valider Décision RH</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Salarie Profile Header Card */}
@@ -127,7 +201,7 @@ export default function DetailSalarieScreen() {
                 </span>
                 <span className="flex items-center gap-1">
                   <User className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-                  Manager N+1 : <strong className="text-foreground">{salarie.responsableNom}</strong>
+                  Responsable : <strong className="text-foreground">{salarie.responsableNom}</strong>
                 </span>
                 <span className="flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
@@ -452,6 +526,147 @@ export default function DetailSalarieScreen() {
             )}
           </div>
         </Card>
+      )}
+
+      {/* Modal d'édition des informations du salarié */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/20 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                  Modifier les informations du salarié
+                </h3>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Prénom</label>
+                  <input
+                    type="text"
+                    value={editFormData.firstName}
+                    onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Nom</label>
+                  <input
+                    type="text"
+                    value={editFormData.lastName}
+                    onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Téléphone</label>
+                <input
+                  type="text"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Poste</label>
+                  <input
+                    type="text"
+                    value={editFormData.poste}
+                    onChange={(e) => setEditFormData({ ...editFormData, poste: e.target.value })}
+                    className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">Direction / Pôle</label>
+                  <input
+                    type="text"
+                    value={editFormData.directionName}
+                    onChange={(e) => setEditFormData({ ...editFormData, directionName: e.target.value })}
+                    className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Manager N+1</label>
+                <input
+                  type="text"
+                  value={editFormData.responsableNom}
+                  onChange={(e) => setEditFormData({ ...editFormData, responsableNom: e.target.value })}
+                  className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" size="sm">
+                  Enregistrer
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/20 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-sm font-semibold tracking-tight">Supprimer le salarié</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Êtes-vous sûr de vouloir supprimer <strong className="text-foreground">{salarie.firstName} {salarie.lastName}</strong> ? Cette action est irréversible.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSalarie}
+              >
+                Confirmer la suppression
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Decision Modal */}

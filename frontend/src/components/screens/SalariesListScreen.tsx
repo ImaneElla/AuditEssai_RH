@@ -12,6 +12,7 @@ import {
   CalendarDays,
   UserRound,
   Mail,
+  TriangleAlert,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -431,7 +432,7 @@ export default function SalariesListScreen() {
                       </p>
 
                       <p className="text-[9px] text-muted-foreground mt-0.5">
-                        Manager N+1
+                        Responsable
                       </p>
 
                     </div>
@@ -505,11 +506,15 @@ export default function SalariesListScreen() {
 
                   {/* RETARD */}
                   {hasOverdue && (
-                    <div className="mt-3 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2">
-                      <span className="text-[10px] text-rose-700 font-medium">
-                        ⚠️ Retard &gt; 2 jours
-                      </span>
-                    </div>
+               <div className="mt-3 rounded-lg bg-rose-50 border border-rose-200 px-3 py-2 relative flex items-center gap-2">
+  <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+    <TriangleAlert className="w-4 h-4 text-yellow-600" />
+  </div>
+
+  <span className="text-[10px] text-rose-700 font-medium">
+    Retard &gt; 2 jours
+  </span>
+</div>
                   )}
 
                 </div>
@@ -727,7 +732,7 @@ export default function SalariesListScreen() {
                         </p>
 
                         <p className="text-[10px] text-muted-foreground">
-                          Manager N+1
+                          Responsable N+1
                         </p>
 
                       </td>
