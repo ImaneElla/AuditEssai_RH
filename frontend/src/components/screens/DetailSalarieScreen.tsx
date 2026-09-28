@@ -36,7 +36,8 @@ export default function DetailSalarieScreen() {
     relancerRetard, 
     validerDecisionRH,
     currentRole,
-    setSalaries
+    updateSalarie,
+    deleteSalarie
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'PARCOURS' | 'EMAILS'>('PARCOURS');
@@ -86,19 +87,13 @@ export default function DetailSalarieScreen() {
   // Soumission des modifications du salarié
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (setSalaries) {
-      setSalaries((prev) =>
-        prev.map((s) => (s.id === salarie.id ? { ...s, ...editFormData } : s))
-      );
-    }
+    updateSalarie(salarie.id, editFormData);
     setShowEditModal(false);
   };
 
   // Confirmation de la suppression du salarié
   const handleDeleteSalarie = () => {
-    if (setSalaries) {
-      setSalaries((prev) => prev.filter((s) => s.id !== salarie.id));
-    }
+    deleteSalarie(salarie.id);
     setShowDeleteModal(false);
     navigateTo('salaries');
   };

@@ -70,7 +70,7 @@ export default function GestionResponsable() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // KPIs
-  const aFaire = periodes.filter(p => p.statut === 'EN_COURS' || p.statut === 'A_TRAITER');
+  const aFaire = periodes.filter(p => p.statut === 'PLANIFIEE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE');
   const soumises = periodes.filter(p => p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH');
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
 

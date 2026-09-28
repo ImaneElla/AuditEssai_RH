@@ -37,20 +37,33 @@ export default function AjouterSalarieScreen() {
     }
   };
 
-  const addMonths = (dateStr: string, months: number): string => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '';
-      d.setMonth(d.getMonth() + months);
-      return d.toISOString().split('T')[0];
-    } catch {
-      return '';
-    }
-  };
+ const formatDateFr = (dateStr: string): string => {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`; 
+  } catch {
+    return '—';
+  }
+};
 
-  const calculated2M = addMonths(dateEmbauche, 2);
-  const calculated5M = addMonths(dateEmbauche, 5);
-  const calculatedFin = addMonths(dateEmbauche, dureeInitialeMois);
+const addMonthsFormatted = (dateStr: string, months: number): string => {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    d.setMonth(d.getMonth() + months);
+    return formatDateFr(d.toISOString());
+  } catch {
+    return '';
+  }
+};
+
+  const calculated2M = addMonthsFormatted(dateEmbauche, 2);
+  const calculated5M = addMonthsFormatted(dateEmbauche, 5);
+  const calculatedFin = addMonthsFormatted(dateEmbauche, dureeInitialeMois);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +155,7 @@ export default function AjouterSalarieScreen() {
                 <input
                   type="email"
                   required
-                  placeholder="prenom.nom@groupe-premium.com"
+                  placeholder="prenom.nom@premuim.africa"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none font-mono text-foreground"
@@ -151,7 +164,7 @@ export default function AjouterSalarieScreen() {
             </div>
             <div>
               <label className="block text-xs font-medium text-foreground mb-1">
-                Téléphone Professionnel
+                Téléphone <span className="text-muted-foreground text-xs">(optionnel)</span> 
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
@@ -259,9 +272,8 @@ export default function AjouterSalarieScreen() {
                 onChange={(e) => setDureeInitialeMois(Number(e.target.value))}
                 className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none text-foreground cursor-pointer"
               >
-                <option value={2}>2 mois (Employé / Opérateur)</option>
-                <option value={3}>3 mois (Technicien / Agent de maîtrise)</option>
-                <option value={4}>4 mois (Cadre - Standard Groupe Premium)</option>
+                <option value={3}>3 mois</option>
+                <option value={6}>6 mois</option>
               </select>
             </div>
           </div>
@@ -273,9 +285,7 @@ export default function AjouterSalarieScreen() {
                 <Zap className="w-4 h-4" strokeWidth={1.75} />
                 <span>Calculateur Automatique de Jalons Groupe Premium</span>
               </div>
-              <Badge variant="appleRed" className="text-[10px] font-mono px-2 py-0">
-                Batch 09:00 Activé
-              </Badge>
+            
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">

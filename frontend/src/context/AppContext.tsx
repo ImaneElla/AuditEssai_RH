@@ -97,6 +97,8 @@ interface AppContextType {
       phone?: string;
       poste?: string;
       responsableId?: number;
+      directionName?: string;
+      responsableNom?: string;
     }
   ) => void;
   deleteSalarie: (salarieId: number) => void;
@@ -371,6 +373,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     navigateTo('detail-salarie', { salarieId: newId });
   };
 
+  const updateSalarie = (
+    salarieId: number,
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      poste?: string;
+      responsableId?: number;
+      directionName?: string;
+      responsableNom?: string;
+    }
+  ) => {
+    const responsable = data.responsableId === undefined
+      ? undefined
+      : responsables.find(item => item.id === data.responsableId);
+
+    setSalariesList(prev => prev.map(salarie => salarie.id === salarieId
+      ? {
+          ...salarie,
+          ...data,
+          nom: data.lastName,
+          prenom: data.firstName,
+          responsableNom: responsable
+            ? `${responsable.firstName} ${responsable.lastName}`
+            : data.responsableNom ?? salarie.responsableNom,
+        }
+      : salarie));
+    showToast('Les informations du salarié ont été mises à jour.');
+  };
+
+  const deleteSalarie = (salarieId: number) => {
+    const periodeIds = periodesList
+      .filter(periode => periode.salarieId === salarieId)
+      .map(periode => periode.id);
+    setSalariesList(prev => prev.filter(salarie => salarie.id !== salarieId));
+    setPeriodesList(prev => prev.filter(periode => periode.salarieId !== salarieId));
+    setEvaluations(prev => prev.filter(evaluation => !periodeIds.includes(evaluation.periodeId)));
+    showToast('Le salarié a été supprimé.');
+  };
+
+  const addResponsable = (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    poste: string;
+    directionId: number;
+  }) => {
+    const direction = directions.find(item => item.id === data.directionId);
+    const newId = responsables.length > 0
+      ? Math.max(...responsables.map(responsable => responsable.id)) + 1
+      : 1;
+    const newResponsable: Responsable = {
+      id: newId,
+      ...data,
+      directionName: direction?.name ?? 'Direction Générale',
+    };
+    setResponsables(prev => [...prev, newResponsable]);
+    setSelectedResponsableId(newId);
+    showToast(`Responsable ${data.firstName} ${data.lastName} ajouté.`);
+  };
+
+  const updateResponsable = (
+    responsableId: number,
+    data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      poste: string;
+      directionId: number;
+    }
+  ) => {
+    const direction = directions.find(item => item.id === data.directionId);
+    setResponsables(prev => prev.map(responsable => responsable.id === responsableId
+      ? { ...responsable, ...data, directionName: direction?.name ?? responsable.directionName }
+      : responsable));
+    setSalariesList(prev => prev.map(salarie => salarie.responsableId === responsableId
+      ? { ...salarie, responsableNom: `${data.firstName} ${data.lastName}` }
+      : salarie));
+    showToast('Les informations du responsable ont été mises à jour.');
+  };
+
+  const deleteResponsable = (responsableId: number) => {
+    if (salariesList.some(salarie => salarie.responsableId === responsableId)) {
+      showToast('Ce responsable ne peut pas être supprimé tant que des salariés lui sont affectés.');
+      return false;
+    }
+    setResponsables(prev => prev.filter(responsable => responsable.id !== responsableId));
+    setUsers(prev => prev.filter(user => user.responsableId !== responsableId));
+    if (selectedResponsableId === responsableId) {
+      setSelectedResponsableId(responsables.find(responsable => responsable.id !== responsableId)?.id ?? 0);
+    }
+    showToast('Le responsable a été supprimé.');
+    return true;
+  };
+
   const relancerRetard = (periodeId: number) => {
     const periode = periodesList.find(p => p.id === periodeId);
     if (!periode) return;
@@ -625,6 +725,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentScreen,
         navigateTo,
+        selectedResponsableId,
+        setSelectedResponsableId,
         currentRole,
         setCurrentRole,
         currentUser,
@@ -651,6 +753,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         emails,
         notifications,
         addSalarie,
+        updateSalarie,
+        deleteSalarie,
+        addResponsable,
+        updateResponsable,
+        deleteResponsable,
         relancerRetard,
         relancerTousLesRetards,
         submitEvaluation,

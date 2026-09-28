@@ -43,7 +43,7 @@ export default function EmailsScreen() {
   const totalEmails = emails.length;
   const cronEmails = emails.filter(e => e.batchCron).length;
   const alertEmails = emails.filter(e => e.typeEmail.includes('RETARD') || e.typeEmail.includes('ALERTE')).length;
-  const successEmails = emails.filter(e => e.statut === 'ENVOYE' || e.statut === 'OUVERT').length;
+  const successEmails = emails.filter(e => e.statut === 'DELIVRE' || e.statut === 'OUVERT').length;
 
   const typeLabel = (t: string) => {
     switch (t) {
