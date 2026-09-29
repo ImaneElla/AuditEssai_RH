@@ -13,8 +13,7 @@ import {
   ChevronRight, 
   FileText, 
   Send,
-  ExternalLink,
-  Zap
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +40,11 @@ function DashboardRH() {
   const periodes2M = periodes.filter(p => p.typePeriode === 'DEUX_MOIS' && p.statut !== 'VALIDEE_RH');
   const periodes5M = periodes.filter(p => p.typePeriode === 'CINQ_MOIS' && p.statut !== 'VALIDEE_RH');
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
+
+  const prochaines = periodes
+    .filter(p => p.statut !== 'VALIDEE_RH' && p.statut !== 'COMPLETEE' && p.statut !== 'EN_RETARD')
+    .sort((a, b) => new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime())
+    .slice(0, 4);
 
   const periodesAffichees = filterJalons === 'PRIORITAIRE'
     ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
@@ -628,7 +632,7 @@ function DashboardRH() {
 
       {/*  4. Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Jalons d'Évaluation + Moteur d'Automatisation */}
+        {/* Left Column (2 Cols): Jalons d'Évaluation */}
         <div className="lg:col-span-2 space-y-6">
           {/* Section 1: Jalons d'Évaluation en Cours */}
           <Card className="overflow-hidden">
@@ -749,115 +753,44 @@ function DashboardRH() {
             </div>
           </Card>
 
-          {/* Section 2: Moteur d'Automatisation & Batch 09:00 */}
           <Card className="overflow-hidden">
-            <div className="p-4 border-b border-border flex flex-wrap items-center justify-between gap-3 bg-secondary/20">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center font-medium shadow-2xs">
-                  <Clock className="w-4 h-4" strokeWidth={1.75} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground tracking-tight flex items-center gap-2">
-                    <span>Moteur d’Automatisation &amp; Règles Système</span>
-                    <Badge variant="secondary" className="text-[9px] font-mono px-1.5 py-0">
-                      Batch 09:00
-                    </Badge>
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    Supervision du cycle automatique quotidien, détection des retards &amp; alertes RH
-                  </p>
-                </div>
+            <div className="p-4 border-b border-border flex items-center gap-2.5 bg-secondary/20">
+              <div className="w-8 h-8 rounded-xl bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center shadow-2xs">
+                <Calendar className="w-4 h-4" strokeWidth={1.75} />
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700 font-medium bg-zinc-100 border border-zinc-200/80 px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                  <span>Moteur Actif</span>
-                </span>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">Prochaines Échéances</h3>
+                <p className="text-[11px] text-muted-foreground">Jalons à venir, anticipés automatiquement</p>
               </div>
             </div>
 
-            <div className="p-5 space-y-5">
-              {/* 3 Metrics Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-secondary/40 border border-border/70 space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                    Horodatage Batch
-                  </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold font-mono text-foreground">09:00:00</span>
-                    <span className="text-[11px] text-muted-foreground">quotidien</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Déclenchement automatique sans intervention</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-secondary/40 border border-border/70 space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                    Seuil Retard
-                  </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold font-mono text-foreground">&gt; 2 Jours</span>
-                    <span className="text-[11px] text-muted-foreground">ouvrés</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Déclenche alerte de relance automatique</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-secondary/40 border border-border/70 space-y-1">
-                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                    Escalade RH
-                  </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold text-foreground">J+2 &amp; Copie DRH</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Notification directe à Saida KARDOUSSI</p>
-                </div>
-              </div>
-
-              {/* Règles Métier & Cycle Automatique */}
-              <div className="p-4 rounded-xl bg-secondary/30 border border-border/60 space-y-3">
-                <h4 className="text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-zinc-500" strokeWidth={1.75} />
-                  <span>Cycle &amp; Règles de Surveillance Réglementaire</span>
-                </h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200/80 font-medium flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-                      1
-                    </span>
-                    <div>
-                      <strong className="text-foreground text-[11px] block">Jalons 2M &amp; 5M à J-0</strong>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-                        Envoi automatique de la convocation au manager à 09:00 et du lien sécurisé au collaborateur.
-                      </p>
+            <div className="divide-y divide-border/60">
+              {prochaines.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">Aucune échéance à venir.</div>
+              ) : (
+                prochaines.map((p) => {
+                  const jours = Math.ceil((new Date(p.dateEcheance).getTime() - Date.now()) / 86400000);
+                  return (
+                    <div key={p.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-medium text-xs shrink-0 bg-zinc-100 text-zinc-700 border border-zinc-200/80">
+                          {p.typePeriode === 'DEUX_MOIS' ? '2M' : '5M'}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-foreground text-xs tracking-tight truncate block">{p.salarieNom}</span>
+                          <p className="text-[11px] text-muted-foreground truncate">{p.salariePoste}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[11px] font-mono text-foreground block">{p.dateEcheance}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {jours > 0 ? `dans ${jours} j` : jours === 0 ? "aujourd'hui" : `il y a ${Math.abs(jours)} j`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200/80 font-medium flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-                      2
-                    </span>
-                    <div>
-                      <strong className="text-foreground text-[11px] block">Alerte Retard &gt; 48h</strong>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-                        Détection automatique des évaluations non renseignées sous 2 jours ouvrés avec relance groupée.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200/80 font-medium flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-                      3
-                    </span>
-                    <div>
-                      <strong className="text-foreground text-[11px] block">Validation Finale DRH</strong>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-                        Visa officiel DCH (Confirmation, Renouvellement ou Rupture) et notification électronique finale.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  );
+                })
+              )}
             </div>
           </Card>
         </div>
