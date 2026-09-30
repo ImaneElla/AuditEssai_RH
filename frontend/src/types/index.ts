@@ -33,8 +33,6 @@ export type StatutEssai = 'EN_COURS' | 'RENOUVELEE' | 'CONFIRMEE' | 'RUPTURE';
 export type JalonType = 'DEUX_MOIS' | 'CINQ_MOIS' | 'TERMINE';
 
 export interface Salarie {
-  divisionName: string | undefined;
-  divisionName: ReactNode;
   id: number;
   matricule?: string;
   nom?: string;

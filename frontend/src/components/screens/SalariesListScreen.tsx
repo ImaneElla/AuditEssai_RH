@@ -140,7 +140,7 @@ export default function SalariesListScreen() {
       poste: form.poste,
       dateEmbauche: form.dateEmbauche,
       dureeInitialeMois: 6,
-      divisionId: form.divisionId,
+      directionId: form.divisionId,
       responsableId: form.responsableId,
     });
 
@@ -424,8 +424,8 @@ export default function SalariesListScreen() {
 
   {/* Division en dessous */}
   <p className="text-[11px] text-muted-foreground truncate pl-4">
-    <span title={salarie.divisionName}>
-      {salarie.divisionName}
+    <span title={salarie.directionName}>
+      {salarie.directionName}
     </span>
   </p>
 </td>
@@ -571,7 +571,7 @@ export default function SalariesListScreen() {
 
                     <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
                       <Building2 className="w-3 h-3" strokeWidth={1.75} />
-                      <span>{salarie.divisionName}</span>
+                      <span>{salarie.directionName}</span>
                     </p>
                   </div>
 
