@@ -16,6 +16,69 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
+type KpiFilter = 'ALL' | 'ATTENTE' | 'RETARD' | 'FINALISEES';
+
+const ATTENTE_STATUTS = ['EN_ATTENTE', 'EMAIL_ENVOYE'];
+const FINALISEES_STATUTS = ['COMPLETEE', 'VALIDEE_RH'];
+
+/* ---------- KPI card (design d'origine) ---------- */
+interface KpiCardProps {
+  icon: React.ElementType;
+  title: string;
+  value: React.ReactNode;
+  unit: string;
+  chip: string;
+  detail?: React.ReactNode;
+  danger?: boolean;
+  active: boolean;
+  onClick: () => void;
+  children?: React.ReactNode;
+}
+
+function KpiCard({ icon: Icon, title, value, unit, chip, detail, danger = false, active, onClick, children }: KpiCardProps) {
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      className={`group relative overflow-hidden bg-white border rounded-2xl p-5 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 ${
+        active ? 'border-red-400 ring-1 ring-red-400/40' : 'border-zinc-200'
+      }`}
+    >
+      <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
+              <Icon className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
+            </div>
+            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">{title}</span>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+            <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
+          </div>
+        </div>
+        <div className="flex items-end gap-3">
+          <span className={`text-4xl font-black tracking-tight leading-none ${danger ? 'text-red-600' : 'text-zinc-950'}`}>
+            {value}
+          </span>
+          <span className="text-[11px] text-zinc-500 font-medium mb-1">{unit}</span>
+        </div>
+        <div className="mt-5">
+          <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
+            {chip}
+          </Badge>
+        </div>
+        {detail && <p className="mt-2 text-[11px] text-zinc-500 truncate">{detail}</p>}
+        {children}
+      </div>
+      <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
+    </Card>
+  );
+}
+
 export default function PeriodesScreen() {
   const { periodes = [], navigateTo, validerDecisionRH, currentRole } = useApp();
 
@@ -23,6 +86,7 @@ export default function PeriodesScreen() {
   const [search, setSearch] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [filterStatut, setFilterStatut] = useState<string>('ALL');
+  const [kpiFilter, setKpiFilter] = useState<KpiFilter>('ALL');
 
   const normalize = (v?: string | null) =>
     (v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -32,19 +96,61 @@ export default function PeriodesScreen() {
   const filtered = periodes.filter(p => {
     const matchType = filterType === 'ALL' || p.typePeriode === filterType;
     const matchStatut = filterStatut === 'ALL' || p.statut === filterStatut;
+    const matchKpi =
+      kpiFilter === 'ALL' ||
+      (kpiFilter === 'ATTENTE' && ATTENTE_STATUTS.includes(p.statut)) ||
+      (kpiFilter === 'RETARD' && p.statut === 'EN_RETARD') ||
+      (kpiFilter === 'FINALISEES' && FINALISEES_STATUTS.includes(p.statut));
     const matchSearch =
       query === '' ||
       normalize(p.salarieNom).includes(query) ||
       normalize(p.salariePoste).includes(query) ||
       normalize(p.responsableNom).includes(query) ||
       normalize(p.directionName).includes(query);
-    return matchType && matchStatut && matchSearch;
+    return matchType && matchStatut && matchKpi && matchSearch;
   });
 
+  /* ---------- KPI data ---------- */
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysFromToday = (d?: string | null) => {
+    if (!d) return null;
+    const t = new Date(d).getTime();
+    return isNaN(t) ? null : Math.round((t - today.getTime()) / 86400000);
+  };
+
   const totalPeriodes = periodes.length;
-  const enAttenteCount = periodes.filter(p => p.statut === 'EN_ATTENTE' || p.statut === 'EMAIL_ENVOYE').length;
-  const enRetardCount = periodes.filter(p => p.statut === 'EN_RETARD').length;
-  const completeesCount = periodes.filter(p => p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH').length;
+  const count2M = periodes.filter(p => p.typePeriode === 'DEUX_MOIS').length;
+  const count5M = totalPeriodes - count2M;
+
+  const nbSalaries = new Set(periodes.map(p => p.salarieId)).size;
+  const enAttente = periodes.filter(p => ATTENTE_STATUTS.includes(p.statut));
+  const enRetard = periodes.filter(p => p.statut === 'EN_RETARD');
+  const finalisees = periodes.filter(p => FINALISEES_STATUTS.includes(p.statut));
+  const aValiderRH = periodes.filter(p => p.statut === 'COMPLETEE').length;
+
+  const enAttenteCount = enAttente.length;
+  const enRetardCount = enRetard.length;
+  const completeesCount = finalisees.length;
+  const progress = totalPeriodes > 0 ? Math.round((completeesCount / totalPeriodes) * 100) : 0;
+
+  // Prochaine échéance parmi les évaluations en attente
+  const prochaine = [...enAttente]
+    .filter(p => daysFromToday(p.dateEcheance) !== null)
+    .sort((a, b) => (daysFromToday(a.dateEcheance) as number) - (daysFromToday(b.dateEcheance) as number))[0];
+  const prochaineJours = prochaine ? daysFromToday(prochaine.dateEcheance) : null;
+
+  // Retards : responsables concernés + plus ancien retard
+  const responsablesEnRetard = Array.from(new Set(enRetard.map(p => p.responsableNom).filter(Boolean)));
+  const plusAncienRetard = enRetard
+    .map(p => daysFromToday(p.dateEcheance))
+    .filter((d): d is number => d !== null)
+    .reduce((min, d) => Math.min(min, d), 0);
+
+  const toggleKpi = (k: KpiFilter) => {
+    setFilterStatut('ALL');
+    setKpiFilter(prev => (prev === k ? 'ALL' : k));
+  };
 
   const statutLabel = (s: string) => {
     switch (s) {
@@ -92,138 +198,61 @@ export default function PeriodesScreen() {
         </div>
       </div>
 
+      {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
-                  <CalendarDays className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
-                </div>
-                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                  Total Periode
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
-                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
-              </div>
-            </div>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
-                {totalPeriodes}
-              </span>
-              <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                évaluations
-              </span>
-            </div>
-            <div className="mt-5">
-              <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
-                2M &amp; 5M
-              </Badge>
-            </div>
-          </div>
-          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
-        </Card>
+        <KpiCard
+          icon={CalendarDays}
+          title="Total Période"
+          value={totalPeriodes}
+          unit="évaluations"
+          chip={`${count2M} à 2 mois · ${count5M} à 5 mois`}
+          detail={`${nbSalaries} salarié${nbSalaries > 1 ? 's' : ''} concerné${nbSalaries > 1 ? 's' : ''}`}
+          active={kpiFilter === 'ALL'}
+          onClick={() => { setFilterStatut('ALL'); setKpiFilter('ALL'); }}
+        />
 
-        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
-                  <Clock className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
-                </div>
-                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                  En Attente
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
-                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
-              </div>
-            </div>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
-                {enAttenteCount}
-              </span>
-              <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                formulaires
-              </span>
-            </div>
-            <div className="mt-5">
-              <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
-                En cours
-              </Badge>
-            </div>
-          </div>
-          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
-        </Card>
+        <KpiCard
+          icon={Clock}
+          title="En Attente"
+          value={enAttenteCount}
+          unit="formulaires"
+          chip={
+            prochaine && prochaineJours !== null
+              ? prochaineJours < 0 ? `Dépassée de ${Math.abs(prochaineJours)} j`
+                : prochaineJours === 0 ? "Échéance aujourd'hui"
+                : `Échéance dans ${prochaineJours} j`
+              : 'Aucun en cours'
+          }
+          detail={prochaine?.salarieNom}
+          active={kpiFilter === 'ATTENTE'}
+          onClick={() => toggleKpi('ATTENTE')}
+        />
 
-        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
-                  <AlertTriangle className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
-                </div>
-                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                  En Retard
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
-                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
-              </div>
-            </div>
-            <div className="flex items-end gap-3">
-              <span className={`text-4xl font-black tracking-tight leading-none ${enRetardCount > 0 ? 'text-red-600' : 'text-zinc-950'}`}>
-                {enRetardCount}
-              </span>
-              <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                responsable
-              </span>
-            </div>
-            <div className="mt-5">
-              <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
-                {enRetardCount > 0 ? 'Relance requise' : 'Aucun retard'}
-              </Badge>
-            </div>
-          </div>
-          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
-        </Card>
+        <KpiCard
+          icon={AlertTriangle}
+          title="En Retard"
+          value={enRetardCount}
+          unit={enRetardCount > 1 ? 'évaluations' : 'évaluation'}
+          chip={enRetardCount > 0 ? `Jusqu'à ${Math.abs(plusAncienRetard)} j de retard` : 'Aucun retard'}
+          detail={responsablesEnRetard.join(', ')}
+          danger={enRetardCount > 0}
+          active={kpiFilter === 'RETARD'}
+          onClick={() => toggleKpi('RETARD')}
+        />
 
-        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
-                  <CheckCircle2 className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
-                </div>
-                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                  Finalisées
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
-                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
-              </div>
-            </div>
-            <div className="flex items-end gap-3">
-              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
-                {completeesCount}
-              </span>
-              <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                complétées
-              </span>
-            </div>
-            <div className="mt-5">
-              <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
-                Terminées
-              </Badge>
-            </div>
+        <KpiCard
+          icon={CheckCircle2}
+          title="Finalisées"
+          value={completeesCount}
+          unit={`sur ${totalPeriodes}`}
+          chip={isRH && aValiderRH > 0 ? `${aValiderRH} à valider RH` : `${progress} % terminées`}
+          active={kpiFilter === 'FINALISEES'}
+          onClick={() => toggleKpi('FINALISEES')}
+        >
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+            <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${progress}%` }} />
           </div>
-          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
-        </Card>
+        </KpiCard>
       </div>
 
       <Card className="p-3.5 border-border/80 shadow-2xs">
@@ -244,14 +273,14 @@ export default function PeriodesScreen() {
             onChange={(e) => setFilterType(e.target.value)}
             className="text-xs bg-secondary/40 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none cursor-pointer font-medium"
           >
-            <option value="ALL">Tous les Periode</option>
-            <option value="DEUX_MOIS">Bilan 3 Mois (Intermédiaire)</option>
-            <option value="CINQ_MOIS">Bilan 6 Mois (Décision Finale)</option>
+            <option value="ALL">Toutes les périodes</option>
+            <option value="DEUX_MOIS">Bilan 2 Mois (Intermédiaire)</option>
+            <option value="CINQ_MOIS">Bilan 5 Mois (Décision Finale)</option>
           </select>
 
           <select
             value={filterStatut}
-            onChange={(e) => setFilterStatut(e.target.value)}
+            onChange={(e) => { setFilterStatut(e.target.value); setKpiFilter('ALL'); }}
             className="text-xs bg-secondary/40 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none cursor-pointer font-medium"
           >
             <option value="ALL">Tous les statuts</option>
@@ -267,17 +296,17 @@ export default function PeriodesScreen() {
 
       <Card className="overflow-hidden border-border/80 shadow-2xs">
         <table className="w-full table-fixed text-left text-xs border-collapse">
-       <colgroup>
-  <col style={{ width: '6%' }} />
-  <col style={{ width: '13%' }} />
-  <col style={{ width: '11%' }} />
-  <col style={{ width: '11%' }} />
-  <col style={{ width: '8%' }} />
-  <col style={{ width: '14%' }} />
-  <col style={{ width: '7%' }} />
-  <col style={{ width: '10%' }} />
-  <col style={{ width: '20%' }} />
-</colgroup>
+          <colgroup>
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '20%' }} />
+          </colgroup>
           <thead className="bg-secondary/60 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
             <tr>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Type</th>
@@ -334,17 +363,17 @@ export default function PeriodesScreen() {
                       >
                         {p.decisionFinale}
                       </Badge>
-                   ) : (
-    <Badge
-      variant="secondary"
-      className="text-[10px] font-mono whitespace-nowrap"
-    >
-      En cours
-    </Badge>
-  )}
-</td>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-mono whitespace-nowrap"
+                      >
+                        En cours
+                      </Badge>
+                    )}
+                  </td>
                   <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px]">
-                    {formatDate(p.dateRemplissage)}
+                    {formatDate(p.dateValidationRH)}
                   </td>
                   <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
                     <Badge variant={getStatutBadgeVariant(p.statut)} className="inline-flex items-center gap-1 text-[10px] font-mono whitespace-nowrap">
@@ -359,7 +388,7 @@ export default function PeriodesScreen() {
                             variant="outline"
                             size="sm"
                             onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                             className="text-xs h-7 cursor-pointer border-border  bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                            className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
                           >
                             Consulter
                           </Button>
@@ -380,10 +409,10 @@ export default function PeriodesScreen() {
                               variant="outline"
                               size="sm"
                               onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                             className="text-xs h-7 cursor-pointer border-border  bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
-                          >
-                            Consulter
-                          </Button>
+                              className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                            >
+                              Consulter
+                            </Button>
                           ) : (
                             <Button
                               size="sm"

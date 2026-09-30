@@ -60,18 +60,17 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
 };
 
 export default function SalariesListScreen() {
-   const {
+  const {
     salaries = [],
     directions,
-    divisions: divisionsCtx,
     responsables = [],
     periodes = [],
     addSalarie,
     navigateTo,
     currentRole,
-  } = useApp() as any;
+  } = useApp();
 
-  const divisions: { id: number; name: string }[] = divisionsCtx ?? directions ?? [];
+  const divisions = directions;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDivision, setSelectedDivision] = useState<string>("ALL");
@@ -159,7 +158,7 @@ export default function SalariesListScreen() {
 
       const matchesDivision =
         selectedDivision === "ALL" ||
-        s.divisionId === Number(selectedDivision);
+        s.directionId === Number(selectedDivision);
 
       const matchesStatut =
         selectedStatut === "ALL" || s.statutEssai === selectedStatut;
