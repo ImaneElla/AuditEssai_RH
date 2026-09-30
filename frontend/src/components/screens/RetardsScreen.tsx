@@ -1,14 +1,14 @@
 "use client";
 
-import React from 'react';
+
 import { useApp } from '../../context/AppContext';
-import { AlertTriangle, Send, Clock, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
 export default function RetardsScreen() {
-  const { periodes, navigateTo, relancerRetard, relancerTousLesRetards, currentRole } = useApp();
+  const { periodes, navigateTo, currentRole } = useApp();
 
   const isRH = currentRole === 'ADMIN_RH';
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
@@ -21,7 +21,7 @@ export default function RetardsScreen() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-foreground tracking-tight">
-            {isRH ? 'Suivi des Retards (> 2 Jours Ouvrés)' : 'Retards d’Évaluation — Mon Équipe'}
+            {isRH ? 'Suivi des Retards' : 'Retards d’Évaluation — Mon Équipe'}
           </h2>
           <p className="text-xs text-muted-foreground">
             {isRH 
@@ -30,27 +30,18 @@ export default function RetardsScreen() {
             }
           </p>
         </div>
-        {isRH && retards.length > 0 && (
-          <Button 
-            onClick={() => relancerTousLesRetards()} 
-            size="default"
-            className="flex items-center gap-2 shadow-xs cursor-pointer shrink-0"
-          >
-            <Send className="w-4 h-4" strokeWidth={1.75} />
-            <span>Relancer tous les Responsables ({retards.length})</span>
-          </Button>
-        )}
+     
       </div>
 
       {/* Apple SF Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-linear-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
+        <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-zinc-300">
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-linear-to-br from-zinc-100 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-5">
               <span className="text-[11px] font-bold uppercase text-zinc-600">Total Retards Actifs</span>
-              <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center transition-colors duration-300 group-hover:bg-red-600">
-                <AlertTriangle className="w-5 h-5 text-red-600 transition-colors group-hover:text-white" strokeWidth={2} />
+              <div className="w-11 h-11 rounded-xl bg-zinc-100 border border-zinc-200/80 flex items-center justify-center transition-colors duration-300 group-hover:bg-zinc-900">
+                <Users className="w-5 h-5 text-zinc-700 transition-colors group-hover:text-white" strokeWidth={2} />
               </div>
             </div>
             <div className="flex items-end gap-3">
@@ -58,16 +49,16 @@ export default function RetardsScreen() {
               <p className="mb-1 text-[11px] font-medium text-zinc-500">Non répondus après 48h</p>
             </div>
           </div>
-          <div className="absolute bottom-0 right-0 h-1 w-16 rounded-tl-full bg-linear-to-r from-red-600 to-zinc-900" />
+          <div className="absolute bottom-0 right-0 h-1 w-16 rounded-tl-full bg-linear-to-r from-zinc-500 to-zinc-900" />
         </Card>
 
         <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-zinc-300">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-linear-to-br from-zinc-100 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-linear-to-br from-orange-100 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-5">
-              <span className="text-[11px] font-bold uppercase text-zinc-600">Retards Modérés (+2 à +4j)</span>
-              <div className="w-11 h-11 rounded-xl bg-zinc-100 border border-zinc-200/80 flex items-center justify-center transition-colors duration-300 group-hover:bg-zinc-900">
-                <Clock className="w-5 h-5 text-zinc-700 transition-colors group-hover:text-white" strokeWidth={2} />
+              <span className="text-[11px] font-bold uppercase text-zinc-600">Retards Modérés</span>
+              <div className="w-11 h-11 rounded-xl bg-zinc-100 border border-zinc-200/80 flex items-center justify-center transition-colors duration-300 group-hover:bg-orange-600">
+                <Clock className="w-5 h-5 text-orange-700 transition-colors group-hover:text-white" strokeWidth={2} />
               </div>
             </div>
             <div className="flex items-end gap-3">
@@ -75,7 +66,7 @@ export default function RetardsScreen() {
               <p className="mb-1 text-[11px] font-medium text-zinc-500">Relance de rappel envoyée</p>
             </div>
           </div>
-          <div className="absolute bottom-0 right-0 h-1 w-16 rounded-tl-full bg-linear-to-r from-zinc-500 to-zinc-900" />
+          <div className="absolute bottom-0 right-0 h-1 w-16 rounded-tl-full bg-linear-to-r from-orange-500 to-zinc-900" />
         </Card>
 
         <Card className="group relative overflow-hidden bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200">
@@ -112,7 +103,7 @@ export default function RetardsScreen() {
               <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3.5 px-4">Salarié</th>
-                  <th className="py-3.5 px-4">Responsable N+1</th>
+                  <th className="py-3.5 px-4">Responsable</th>
                   <th className="py-3.5 px-4">Type de Bilan</th>
                   <th className="py-3.5 px-4">Date d&apos;envoi</th>
                   <th className="py-3.5 px-4">Retard</th>
@@ -164,21 +155,15 @@ export default function RetardsScreen() {
                       <div className="flex items-center justify-end gap-1.5">
                         {isRH ? (
                           <>
-                            <Button 
-                              onClick={() => relancerRetard(p.id)} 
-                              size="sm"
-                              className="flex items-center gap-1 cursor-pointer shadow-xs"
-                            >
-                              <Send className="w-3 h-3" strokeWidth={1.75} /> Relancer
-                            </Button>
+                            
                             <Button 
                               variant="outline"
                               size="sm"
                               onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })} 
-                              className="cursor-pointer"
-                            >
-                              Consulter
-                            </Button>
+                             className="text-xs h-7 cursor-pointer border-border  bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                                                   >
+                                                     Consulter
+                                                   </Button>
                           </>
                         ) : (
                           <Button 

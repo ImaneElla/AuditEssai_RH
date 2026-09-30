@@ -168,7 +168,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 #### 🔴 Diagnostic & Constat
 Le tableau de bord, bien que moderne et cohérent, présentait une surcharge cognitive :
-- Accumulation simultanée de 4 widgets volumineux sur un même écran (prochains jalons, répartition par direction, journal des emails, règles d'automatisation textuelles).
+- Accumulation simultanée de 4 widgets volumineux sur un même écran (prochains Periode, répartition par direction, journal des emails, règles d'automatisation textuelles).
 - Micro-textes redondants dans les cartes de KPI ("Consulter ->", "bilans à suivre", "Point d'intégration précoce").
 - Grand bandeau d'en-tête répétant de longues explications statiques sur les règles d'automatisation.
 
@@ -178,9 +178,9 @@ Le tableau de bord, bien que moderne et cohérent, présentait une surcharge cog
 3. **Bandeau d'Alerte Compact & Ciblé** : S'affiche uniquement en cas de retards actifs (> 48h), avec une action directe unique de relance groupée.
 4. **Segmented Control Apple (Séparation Données Essentielles vs Secondaires)** :
    - **"À traiter en priorité"** : Focalise immédiatement l'attention du DRH/Manager sur les dossiers en retard ou en attente.
-   - **"Tous les jalons"** : Permet de consulter l'ensemble du pipeline sans encombrer la vue par défaut.
+   - **"Tous les Periode"** : Permet de consulter l'ensemble du pipeline sans encombrer la vue par défaut.
    - **"Derniers emails (09:00)"** : Accessible au clic sans occuper la moitié droite de l'écran.
-5. **Intégration Directe du Tableau des Emails** : Le tableau des emails automatiques du Batch 09:00 est réintégré directement sur le dashboard sous les jalons, permettant de consulter les envois et de prévisualiser les messages sans navigation superflue.
+5. **Intégration Directe du Tableau des Emails** : Le tableau des emails automatiques du Batch 09:00 est réintégré directement sur le dashboard sous les Periode, permettant de consulter les envois et de prévisualiser les messages sans navigation superflue.
 6. **Ancrage Fixe de la Sidebar (Sidebar Fixe)** : Isolation du conteneur parent (`h-screen overflow-hidden`) et fixation de la barre latérale (`h-screen sticky top-0`), assurant que seule la zone de contenu défile indépendamment sans entraîner la barre de navigation.
 
 ---
@@ -212,7 +212,7 @@ flowchart TD
         F --> G1[DashboardScreen : KPIs & Alertes]
         F --> G2[SalariesListScreen : Répertoire & Filtres]
         F --> G3[AjouterSalarieScreen : Calculateur 2M/5M]
-        F --> G4[PeriodesScreen : Grille des Jalons]
+        F --> G4[PeriodesScreen : Grille des Periode]
         F --> G5[FormulaireEvaluationScreen : Notation Star Rating]
         F --> G6[RetardsScreen : Relances Rapides N+1]
         F --> G7[EmailsScreen : Journal Audit 09h00]
@@ -223,7 +223,7 @@ flowchart TD
 
 ## 5. Fonctionnalités Métier Opérationnelles
 
-- **Gestion des Jalons & Calendrier Automatique :**
+- **Gestion des Periode & Calendrier Automatique :**
   Dès l'ajout d'un salarié, le système calcule automatiquement la date du jalon à 2 mois et celle à 5 mois, et pré-programme l'envoi des formulaires.
 - **Moteur Batch 09:00 :**
   Un bouton interactif permet de simuler le déclenchement de la tâche planifiée quotidienne de 09h00, scannant les échéances et générant les relances nécessaires.

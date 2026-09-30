@@ -41,16 +41,13 @@ export default function Sidebar() {
   const primaryItems = [
     { id: 'dashboard', label: isRH ? 'Tableau de Bord RH' : 'Tableau de Bord', icon: LayoutDashboard, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'salaries', label: isRH ? 'Gestion des salariés' : 'Mes salariés affectés', icon: Users, badge: isRH ? enCoursCount : salaries.length, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
+    { id: 'gestion-responsable', label: 'Gestion des responsables', icon: Briefcase, roleVisibility: ['ADMIN_RH'] },
     { id: 'periodes', label: isRH ? 'Périodes d\'évaluation' : 'Évaluations à réaliser', icon: CalendarCheck, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'retards', label: isRH ? 'Suivi des retards' : 'Retards équipe', icon: AlertTriangle, badge: retardsCount > 0 ? `${retardsCount}` : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotifsCount > 0 ? unreadNotifsCount : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
   ] as any;
 
   const adminItems: { id: ScreenId; label: string; icon: typeof UserPlus }[] = [
-    { id: 'ajouter-salarie', label: 'Ajouter un salarié', icon: UserPlus },
-    { id: 'emails', label: 'Historique des emails', icon: Mail },
-    { id: 'gestion-responsable', label: 'Gestion des responsables', icon: Briefcase },
-    { id: 'ajouter-responsable', label: 'Ajouter un responsable', icon: BriefcaseBusiness },
   ];
 
   const renderItem = (item: any) => {
@@ -149,14 +146,6 @@ export default function Sidebar() {
 
         {isRH && (
           <>
-            <button
-              onClick={() => setIsAdminOpen(!isAdminOpen)}
-              className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} mt-2 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer`}
-            >
-              {!isSidebarCollapsed && <span className="text-[10px] font-bold uppercase tracking-widest">Administration</span>}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAdminOpen ? 'rotate-0' : '-rotate-90'}`} />
-            </button>
-
             {isAdminOpen && (
               <div className="space-y-1">
                 {adminItems.map(renderItem)}

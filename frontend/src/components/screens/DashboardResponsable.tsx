@@ -400,7 +400,7 @@ export default function DashboardResponsable() {
         <KpiCard
           title="Évaluations à faire"
           value={aFaire.length}
-          suffix="jalons 2M et 5M"
+          suffix="Periode 2M et 5M"
           badgeLabel="À traiter"
           badgeIcon={Clock}
           cardIcon={Clock}

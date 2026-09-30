@@ -356,7 +356,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: Date.now(),
       titre: `Nouveau salarié enregistré : ${data.firstName} ${data.lastName} (${matricule})`,
-      message: `Périodes d'essai configurées automatiquement : Jalons 2 mois (${date2M}) et 5 mois (${date5M}).`,
+      message: `Périodes d'essai configurées automatiquement : Periode 2 mois (${date2M}) et 5 mois (${date5M}).`,
       type: 'EVALUATION',
       priorite: 'MOYENNE',
       dateCreation: new Date().toISOString().split('T')[0],

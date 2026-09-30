@@ -70,7 +70,7 @@ export default function Header() {
 
       case "periodes":
         return isRH
-          ? "Suivi des Jalons d'Évaluation (2 Mois & 5 Mois)"
+          ? "Suivi des Periode d'Évaluation (2 Mois & 5 Mois)"
           : "Évaluations à Réaliser — Mon Équipe";
 
       case "formulaire-evaluation":

@@ -87,7 +87,7 @@ export default function FormulaireEvaluationScreen() {
   // Evaluation des objectifs
   const [objectifsStatut, setObjectifsStatut] = useState<'DEPASSE' | 'ATTEINT' | 'PARTIELLEMENT_ATTEINT'>('ATTEINT');
   const [commentairesObjectifs, setCommentairesObjectifs] = useState(
-    'Objectifs commerciaux et prise en main du portefeuille de clients patrimoniaux atteints conformément aux jalons fixés.'
+    'Objectifs commerciaux et prise en main du portefeuille de clients patrimoniaux atteints conformément aux Periode fixés.'
   );
 
   // Scores et commentaires par critère (1 à 5)
@@ -297,7 +297,7 @@ export default function FormulaireEvaluationScreen() {
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Jalons</span>
+            <span>Periode</span>
           </Button>
           <div>
             <div className="flex items-center gap-2">

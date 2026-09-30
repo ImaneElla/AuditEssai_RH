@@ -33,7 +33,7 @@ function DashboardRH() {
     relancerRetard, 
   } = useApp();
 
-  const [filterJalons, setFilterJalons] = useState<'TOUS' | 'PRIORITAIRE'>('TOUS');
+  const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('TOUS');
 
   // Key metrics
   const totalActifs = salaries.filter(s => s.statutEssai === 'EN_COURS' || s.statutEssai === 'RENOUVELEE').length;
@@ -46,7 +46,7 @@ function DashboardRH() {
     .sort((a, b) => new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime())
     .slice(0, 4);
 
-  const periodesAffichees = filterJalons === 'PRIORITAIRE'
+  const periodesAffichees = filterPeriode === 'PRIORITAIRE'
     ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
     : periodes.slice(0, 5);
 
@@ -62,7 +62,7 @@ function DashboardRH() {
           Tableau de bord
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Direction des Ressources Humaines • Supervision globale, jalons &amp; alertes automatiques
+            Direction des Ressources Humaines • Supervision globale, Periode &amp; alertes automatiques
           </p>
         </div>
 
@@ -82,14 +82,14 @@ function DashboardRH() {
             className="flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
             <Calendar className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-            <span>Tous les Jalons</span>
+            <span>Tous les Periode</span>
           </Button>
         </div>
       </div>
 {/* ================================================================
     3. GLOBAL KPI CARDS — PREMIUM LIGHT / RED & BLACK
 ================================================================ */}
-<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+<div className="grid grid-cols-3 lg:grid-cols-3 gap-4">
 
   {/* ============================================================
       1 — PÉRIODES ACTIVES
@@ -222,7 +222,7 @@ function DashboardRH() {
 
 
   {/* ============================================================
-      2 — JALONS 2 MOIS
+      2 — Periodes 
   ============================================================ */}
   <Card
     onClick={() => navigateTo('periodes')}
@@ -271,7 +271,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Jalons 2 mois
+            Périodes en cours
           </span>
 
         </div>
@@ -345,131 +345,10 @@ function DashboardRH() {
   </Card>
 
 
-  {/* ============================================================
-      3 — JALONS 5 MOIS
-  ============================================================ */}
-  <Card
-    onClick={() => navigateTo('periodes')}
-    className="
-      group relative overflow-hidden cursor-pointer
-      bg-white border border-zinc-200
-      rounded-2xl p-5
-      shadow-sm
-      transition-all duration-300
-      hover:-translate-y-1 hover:shadow-lg hover:border-red-200
-    "
-  >
-
-    <div className="
-      absolute -right-8 -bottom-8
-      w-32 h-32
-      bg-gradient-to-br from-red-50 to-transparent
-      rotate-12
-      transition-transform duration-500
-      group-hover:scale-125
-    " />
-
-    <div className="relative z-10">
-
-      <div className="flex items-center justify-between mb-5">
-
-        <div className="flex items-center gap-3">
-
-          <div className="
-            w-11 h-11 rounded-xl
-            bg-red-50 border border-red-100
-            flex items-center justify-center
-            group-hover:bg-red-600
-            transition-colors duration-300
-          ">
-            <FileText
-              className="w-5 h-5 text-red-600 group-hover:text-white transition-colors"
-              strokeWidth={2}
-            />
-          </div>
-
-          <span className="
-            text-[11px]
-            font-bold
-            tracking-[0.12em]
-            uppercase
-            text-zinc-600
-          ">
-            Jalons 5 mois
-          </span>
-
-        </div>
-
-        <div className="
-          w-8 h-8 rounded-full
-          bg-red-50
-          flex items-center justify-center
-          group-hover:bg-red-600
-          transition-colors
-        ">
-          <ChevronRight
-            className="w-4 h-4 text-red-600 group-hover:text-white transition-colors"
-          />
-        </div>
-
-      </div>
-
-      <div className="flex items-end gap-3">
-
-        <span className="
-          text-4xl
-          font-black
-          tracking-tight
-          leading-none
-          text-zinc-950
-        ">
-          {periodes5M.length}
-        </span>
-
-        <span className="
-          text-[11px]
-          text-zinc-500
-          font-medium
-          mb-1
-        ">
-          décision à prendre
-        </span>
-
-      </div>
-
-      <div className="mt-5">
-
-        <Badge
-          className="
-            bg-red-50
-              text-red-600
-            border-0
-            text-[10px]
-            font-semibold
-            px-2.5
-            py-1
-          "
-        >
-          <FileText className="w-3 h-3 mr-1" />
-          Décision
-        </Badge>
-
-      </div>
-
-    </div>
-
-    <div className="
-      absolute bottom-0 right-0
-      w-16 h-1
-      bg-gradient-to-r from-red-600 to-zinc-900
-      rounded-tl-full
-    " />
-
-  </Card>
 
 
   {/* ============================================================
-      4 — RETARDS
+      3 — RETARDS
   ============================================================ */}
   <Card
     onClick={() => navigateTo('retards')}
@@ -534,7 +413,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Retards &gt; 2 jours
+            Evaluations en relance
           </span>
 
         </div>
@@ -632,28 +511,28 @@ function DashboardRH() {
 
       {/*  4. Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Jalons d'Évaluation */}
+        {/* Left Column (2 Cols): Periode d'Évaluation */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Section 1: Jalons d'Évaluation en Cours */}
+          {/* Section 1: Periode d'Évaluation en Cours */}
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-3">
                 <h3 className="text-sm font-semibold text-foreground tracking-tight">
-                  Jalons d&apos;Évaluation en Cours
+                  Periode d&apos;Évaluation en Cours
                 </h3>
                 <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
                   <button
-                    onClick={() => setFilterJalons('TOUS')}
+                    onClick={() => setFilterPeriode('TOUS')}
                     className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      filterJalons === 'TOUS' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                      filterPeriode === 'TOUS' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Tous
                   </button>
                   <button
-                    onClick={() => setFilterJalons('PRIORITAIRE')}
+                    onClick={() => setFilterPeriode('PRIORITAIRE')}
                     className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      filterJalons === 'PRIORITAIRE' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                      filterPeriode === 'PRIORITAIRE' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Prioritaires {retards.length > 0 && `(${retards.length})`}
@@ -720,31 +599,16 @@ function DashboardRH() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        {isOverdue ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => relancerRetard(periode.id)}
-                            className="flex items-center gap-1.5 border-zinc-300 text-zinc-800 hover:bg-zinc-100 shadow-2xs cursor-pointer text-xs"
-                          >
-                            <Send className="w-3 h-3 text-muted-foreground" strokeWidth={1.75} />
-                            <span>Relancer</span>
-                          </Button>
-                        ) : isCompleted ? (
-                          <Badge variant="appleGreen" className="flex items-center gap-1 text-xs py-1">
-                            <CheckCircle2 className="w-3 h-3" strokeWidth={2} />
-                            <span>{periode.decisionFinale || 'Validé'}</span>
-                          </Badge>
-                        ) : (
+                
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
-                            className="cursor-pointer text-xs"
-                          >
-                            Consulter
-                          </Button>
-                        )}
+                           className="text-xs h-7 cursor-pointer border-border  bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                                                 >
+                                                   Consulter
+                                                 </Button>
+                       
                       </div>
                     </div>
                   );
@@ -760,7 +624,7 @@ function DashboardRH() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground tracking-tight">Prochaines Échéances</h3>
-                <p className="text-[11px] text-muted-foreground">Jalons à venir, anticipés automatiquement</p>
+                <p className="text-[11px] text-muted-foreground">Periode à venir, anticipés automatiquement</p>
               </div>
             </div>
 
@@ -808,20 +672,12 @@ function DashboardRH() {
                     Emails Automatiques
                   </h3>
                   <p className="text-[10px] text-muted-foreground">
-                    Journal d’envoi (Batch 09:00)
+                    Journal d’envoi des notifications automatiques
                   </p>
                 </div>
               </div>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateTo('emails')}
-                className="text-muted-foreground hover:text-foreground text-[11px] h-7 px-2 font-medium cursor-pointer"
-              >
-                <span>Tous ({emails.length})</span>
-                <ChevronRight className="w-3 h-3 ml-0.5" strokeWidth={2} />
-              </Button>
+            
             </div>
 
             <div className="divide-y divide-border/60 max-h-[540px] overflow-y-auto">
@@ -861,7 +717,7 @@ function DashboardRH() {
                         e.stopPropagation();
                         openEmailModal(mail);
                       }}
-                      className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-foreground cursor-pointer"
+                      className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-foreground cursor-pointer bg-red-50"
                     >
                       <span>Voir</span>
                       <ExternalLink className="w-2.5 h-2.5 ml-1" />
@@ -871,16 +727,7 @@ function DashboardRH() {
               ))}
             </div>
 
-            <div className="p-3 border-t border-border/60 bg-secondary/20 text-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigateTo('emails')}
-                className="w-full text-xs h-8 cursor-pointer"
-              >
-                <span>Consulter l’historique d’audit complet</span>
-              </Button>
-            </div>
+        
           </Card>
         </div>
       </div>

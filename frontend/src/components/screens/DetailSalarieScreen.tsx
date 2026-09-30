@@ -231,7 +231,7 @@ export default function DetailSalarieScreen() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground tracking-tight">
-            Parcours Chronologique & Jalons de la Période d&apos;Essai
+            Parcours Chronologique & Periode de la Période d&apos;Essai
           </h3>
           <span className="text-xs text-muted-foreground font-mono">
             Automatisé par le Cron 09:00
