@@ -17,7 +17,8 @@ import {
   ExternalLink,
   Pencil,
   Trash2,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { DecisionPeriode } from '../../types';
 import { Button } from '@/components/ui/button';
@@ -67,14 +68,25 @@ export default function DetailSalarieScreen() {
 
   if (!salarie) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Salarié introuvable.
+      <div className="p-12 text-center space-y-4 font-sans">
+        <p className="text-muted-foreground text-sm">Aucun salarié sélectionné ou la liste est actuellement vide.</p>
+        <Button onClick={() => navigateTo('salaries')} size="sm">
+          Retour à la gestion des salariés
+        </Button>
       </div>
     );
   }
 
-  const periode2M = salariePeriodes.find(p => p.typePeriode === 'DEUX_MOIS');
-  const periode5M = salariePeriodes.find(p => p.typePeriode === 'CINQ_MOIS');
+  const periode3M = salariePeriodes.find(p => p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS' || p.numeroPeriode === 1);
+  const periode6M = salariePeriodes.find(p => p.typePeriode === 'SIX_MOIS' || p.typePeriode === 'CINQ_MOIS' || p.numeroPeriode === 2);
+
+  const sortedSalariePeriodes = [...salariePeriodes].sort((a, b) => {
+    const isA3M = a.typePeriode === 'TROIS_MOIS' || a.typePeriode === 'DEUX_MOIS' || a.numeroPeriode === 1;
+    const isB3M = b.typePeriode === 'TROIS_MOIS' || b.typePeriode === 'DEUX_MOIS' || b.numeroPeriode === 1;
+    if (isA3M && !isB3M) return -1;
+    if (!isA3M && isB3M) return 1;
+    return new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime();
+  });
 
   const handleConfirmDecision = () => {
     const activeP = salariePeriodes.find(p => p.statut !== 'VALIDEE_RH') || salariePeriodes[0];
@@ -217,7 +229,7 @@ export default function DetailSalarieScreen() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Durée initiale :</span>
-              <span className="font-medium text-foreground">{salarie.dureeInitialeMois} mois (Cadre)</span>
+              <span className="font-medium text-foreground"> 6 mois</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Fin prévisionnelle :</span>
@@ -253,34 +265,35 @@ export default function DetailSalarieScreen() {
             <p className="text-[11px] text-muted-foreground mt-2">Prise de fonction officielle</p>
           </div>
 
-          {/* Step 2: Bilan 2 Mois */}
+          {/* Step 2: Bilan 3 Mois */}
           <div className={`border rounded-xl p-4 ${
-            periode2M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
-            periode2M?.statut === 'COMPLETEE' || periode2M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
+            periode3M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
+            periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
             'border-border bg-card'
           }`}>
             <div className="flex items-center justify-between mb-2">
               <Badge 
                 variant={
-                  periode2M?.statut === 'EN_RETARD' ? 'destructive' :
-                  periode2M?.statut === 'COMPLETEE' || periode2M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
+                  periode3M?.statut === 'EN_RETARD' ? 'destructive' :
+                  periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
                   'appleBlue'
                 }
                 className="text-[10px]"
               >
-                {periode2M?.statut === 'EN_RETARD' ? `Retard +${periode2M.joursRetard}j` :
-                 periode2M?.statut === 'COMPLETEE' || periode2M?.statut === 'VALIDEE_RH' ? 'Validé' : 'Planifié'}
+                {periode3M?.statut === 'EN_RETARD' ? `Retard +${periode3M.joursRetard}j` :
+                 periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'Validé' : 
+                 periode3M ? 'En cours' : 'Planifié'}
               </Badge>
               <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
             </div>
-            <h4 className="text-xs font-semibold text-foreground">Bilan 2 Mois (Intermédiaire)</h4>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode2M?.dateEcheance || '—'}</p>
+            <h4 className="text-xs font-semibold text-foreground">Bilan 3 Mois </h4>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode3M?.dateEcheance || '—'}</p>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground">Email à 09:00</span>
-              {periode2M?.statut === 'EN_RETARD' && (
+              {periode3M?.statut === 'EN_RETARD' && (
                 <Button
                   size="sm"
-                  onClick={() => relancerRetard(periode2M.id)}
+                  onClick={() => relancerRetard(periode3M.id)}
                   className="text-[10px] h-6 px-2"
                 >
                   Relancer
@@ -289,28 +302,29 @@ export default function DetailSalarieScreen() {
             </div>
           </div>
 
-          {/* Step 3: Bilan 5 Mois */}
+          {/* Step 3: Bilan 6 Mois */}
           <div className={`border rounded-xl p-4 ${
-            periode5M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
-            periode5M?.statut === 'COMPLETEE' || periode5M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
+            periode6M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
+            periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
             'border-border bg-card'
           }`}>
             <div className="flex items-center justify-between mb-2">
               <Badge 
                 variant={
-                  periode5M?.statut === 'EN_RETARD' ? 'destructive' :
-                  periode5M?.statut === 'COMPLETEE' || periode5M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
+                  periode6M?.statut === 'EN_RETARD' ? 'destructive' :
+                  periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
                   'applePurple'
                 }
                 className="text-[10px]"
               >
-                {periode5M?.statut === 'EN_RETARD' ? `Retard +${periode5M.joursRetard}j` :
-                 periode5M?.statut === 'COMPLETEE' || periode5M?.statut === 'VALIDEE_RH' ? 'Validé' : 'À venir'}
+                {periode6M?.statut === 'EN_RETARD' ? `Retard +${periode6M.joursRetard}j` :
+                 periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'Validé' : 
+                 periode6M ? 'En cours' : 'À venir'}
               </Badge>
               <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
             </div>
-            <h4 className="text-xs font-semibold text-foreground">Bilan 5 Mois (Décision)</h4>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode5M?.dateEcheance || '—'}</p>
+            <h4 className="text-xs font-semibold text-foreground">Bilan 6 Mois (Décision)</h4>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode6M?.dateEcheance || '—'}</p>
             <p className="text-[11px] text-muted-foreground mt-2">Avis N+1 requis</p>
           </div>
 
@@ -362,20 +376,21 @@ export default function DetailSalarieScreen() {
       {/* Tab Content: Bilans */}
       {activeTab === 'PARCOURS' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {salariePeriodes.map((p) => {
+          {sortedSalariePeriodes.map((p) => {
             const evalDetail = evaluations.find(e => e.periodeId === p.id);
             const isCompleted = p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH';
+            const is3M = p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS' || p.numeroPeriode === 1;
 
             return (
               <Card key={p.id} className="p-5 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-border/70">
                   <div className="flex items-center gap-2.5">
                     <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shadow-2xs">
-                      {p.typePeriode === 'DEUX_MOIS' ? '2M' : '5M'}
+                      {is3M ? '3M' : '6M'}
                     </span>
                     <div>
                       <h4 className="text-sm font-semibold text-foreground tracking-tight">
-                        {p.typePeriode === 'DEUX_MOIS' ? 'Bilan d\'intégration 2 mois' : 'Bilan stratégique 5 mois'}
+                        {is3M ? 'Bilan d\'intégration 3 mois' : 'Bilan stratégique 6 mois'}
                       </h4>
                       <p className="text-[11px] text-muted-foreground">Échéance : {p.dateEcheance}</p>
                     </div>
@@ -387,7 +402,7 @@ export default function DetailSalarieScreen() {
                     }
                     className="text-[10px]"
                   >
-                    {p.statut}
+                    {p.statut === 'EN_COURS' ? 'En cours' : p.statut === 'EN_RELANCE' ? 'En relance' : p.statut === 'EN_RETARD' ? 'En retard' : p.statut === 'COMPLETEE' ? 'Complétée' : p.statut === 'VALIDEE_RH' ? 'Validée RH' : p.statut === 'RUPTURE' ? 'Rupture' : p.statut}
                   </Badge>
                 </div>
 
@@ -420,8 +435,19 @@ export default function DetailSalarieScreen() {
                     </div>
 
                     <div className="pt-2 flex items-center justify-between border-t border-border/60 text-xs">
-                      <span className="text-muted-foreground">Décision proposée :</span>
-                      <strong className="text-apple-green font-semibold">{p.decisionFinale}</strong>
+                      <div>
+                        <span className="text-muted-foreground">Décision proposée : </span>
+                        <strong className="text-apple-green font-semibold">{p.decisionFinale || 'VALIDATION'}</strong>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
+                        className="h-7 text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                        <span>Consulter le bilan</span>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -446,7 +472,7 @@ export default function DetailSalarieScreen() {
                         onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
                         className="cursor-pointer"
                       >
-                        Remplir l&apos;évaluation
+                        {p.statut === 'RUPTURE' ? 'Consulter le formulaire' : 'Remplir l\'évaluation'}
                       </Button>
                       {isRH && p.statut === 'EN_RETARD' && (
                         <Button

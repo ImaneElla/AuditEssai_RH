@@ -11,8 +11,6 @@ import {
   Calendar, 
   Mail, 
   ChevronRight, 
-  FileText, 
-  Send,
   ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,15 +28,20 @@ function DashboardRH() {
     emails, 
     navigateTo, 
     openEmailModal, 
-    relancerRetard, 
+    openAddSalarieModal,
+    parametres
   } = useApp();
 
   const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('TOUS');
 
+  // Logged in user greeting prenom
+  const prenomCompte = parametres.profil.prenom || 'Administrateur';
+
   // Key metrics
   const totalActifs = salaries.filter(s => s.statutEssai === 'EN_COURS' || s.statutEssai === 'RENOUVELEE').length;
-  const periodes2M = periodes.filter(p => p.typePeriode === 'DEUX_MOIS' && p.statut !== 'VALIDEE_RH');
-  const periodes5M = periodes.filter(p => p.typePeriode === 'CINQ_MOIS' && p.statut !== 'VALIDEE_RH');
+  const periodes3M = periodes.filter(p => (p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS') && p.statut !== 'VALIDEE_RH');
+  const periodes6M = periodes.filter(p => (p.typePeriode === 'SIX_MOIS' || p.typePeriode === 'CINQ_MOIS') && p.statut !== 'VALIDEE_RH');
+  const activeEvaluationsCount = periodes.filter(p => p.statut !== 'VALIDEE_RH' && p.statut !== 'COMPLETEE' && p.statut !== 'RUPTURE').length;
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
 
   const prochaines = periodes
@@ -47,34 +50,41 @@ function DashboardRH() {
     .slice(0, 4);
 
   const periodesAffichees = filterPeriode === 'PRIORITAIRE'
-    ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
+    ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EN_RELANCE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
     : periodes.slice(0, 5);
 
-    
-    
+  const getEmailBadgeConfig = (typeEmail: string) => {
+    if (typeEmail === 'EMAIL_1_EN_COURS') {
+      return { label: 'Email 1 (J-21) • En cours', class: 'bg-blue-50 text-blue-700 border-blue-200' };
+    }
+    if (typeEmail === 'EMAIL_2_EN_RELANCE') {
+      return { label: 'Email 2 (J-14) • En relance', class: 'bg-amber-50 text-amber-800 border-amber-200' };
+    }
+    if (typeEmail === 'EMAIL_3_EN_RETARD' || typeEmail === 'RAPPEL_RETARD_J2') {
+      return { label: 'Email 3 (J-7) • En retard', class: 'bg-rose-50 text-rose-700 border-rose-200' };
+    }
+    if (typeEmail === 'CONFIRMATION_RH') {
+      return { label: 'Validation RH', class: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
+    }
+    return { label: typeEmail.replace(/_/g, ' '), class: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+  };
 
   return (
     <div className="space-y-6 font-sans">
       {/*  Header DRH  */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">
-          Tableau de bord
+          <h2 className="text-xl md:text-4xl font-bold text-foreground tracking-tight"> 
+            Bonjour {prenomCompte}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Direction des Ressources Humaines • Supervision globale, Periode &amp; alertes automatiques
+            Direction des Ressources Humaines • Supervision globale, Période &amp; alertes automatiques
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <Button
-            onClick={() => navigateTo('ajouter-salarie')}
-            size="sm"
-            className="flex items-center gap-2 shadow-xs cursor-pointer btn-gradient"
-          >
-            <UserPlus className="w-3.5 h-3.5" strokeWidth={1.75} />
-            <span>Nouveau Salarié</span>
-          </Button>
+       
+          
           <Button
             variant="outline"
             onClick={() => navigateTo('periodes')}
@@ -82,7 +92,7 @@ function DashboardRH() {
             className="flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
             <Calendar className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-            <span>Tous les Periode</span>
+            <span>Toutes les Périodes</span>
           </Button>
         </div>
       </div>
@@ -222,7 +232,7 @@ function DashboardRH() {
 
 
   {/* ============================================================
-      2 — Periodes 
+      2 — PÉRIODES EN COURS (3M & 6M)
   ============================================================ */}
   <Card
     onClick={() => navigateTo('periodes')}
@@ -299,7 +309,7 @@ function DashboardRH() {
           leading-none
           text-zinc-950
         ">
-          {periodes2M.length}
+          {activeEvaluationsCount}
         </span>
 
         <span className="
@@ -308,7 +318,7 @@ function DashboardRH() {
           font-medium
           mb-1
         ">
-          évaluations à préparer
+          évaluations (3 mois & 6 mois)
         </span>
 
       </div>
@@ -328,7 +338,7 @@ function DashboardRH() {
           "
         >
           <Clock className="w-3 h-3 mr-1" />
-          À suivre
+          {periodes3M.length} en 3M • {periodes6M.length} en 6M
         </Badge>
 
       </div>
@@ -348,7 +358,7 @@ function DashboardRH() {
 
 
   {/* ============================================================
-      3 — RETARDS
+      3 — RETARDS & EN RELANCE
   ============================================================ */}
   <Card
     onClick={() => navigateTo('retards')}
@@ -413,7 +423,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Evaluations en relance
+            Évaluations en relance
           </span>
 
         </div>
@@ -511,14 +521,14 @@ function DashboardRH() {
 
       {/*  4. Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Periode d'Évaluation */}
+        {/* Left Column (2 Cols): Période d'Évaluation */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Section 1: Periode d'Évaluation en Cours */}
+          {/* Section 1: Période d'Évaluation en Cours */}
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-3">
                 <h3 className="text-sm font-semibold text-foreground tracking-tight">
-                  Periode d&apos;Évaluation en Cours
+                  Période d&apos;Évaluation en Cours (3M / 6M)
                 </h3>
                 <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
                   <button
@@ -548,18 +558,18 @@ function DashboardRH() {
               >
                 <span>Tout afficher ({periodes.length})</span>
                 <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
-                        </Button>
+              </Button>
             </div>
 
             <div className="divide-y divide-border/60">
               {periodesAffichees.length === 0 ? (
                 <div className="p-8 text-center text-xs text-muted-foreground">
-                  Aucun jalon prioritaire à traiter pour le moment.
+                  Aucune période prioritaire à traiter pour le moment.
                 </div>
               ) : (
                 periodesAffichees.map((periode) => {
                   const isOverdue = periode.statut === 'EN_RETARD';
-                  const isCompleted = periode.statut === 'COMPLETEE' || periode.statut === 'VALIDEE_RH';
+                  const is3M = periode.typePeriode === 'TROIS_MOIS' || periode.typePeriode === 'DEUX_MOIS';
 
                   return (
                     <div 
@@ -570,7 +580,7 @@ function DashboardRH() {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center font-medium text-xs shrink-0 bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                          {periode.typePeriode === 'DEUX_MOIS' ? '2M' : '5M'}
+                          {is3M ? '3M' : '6M'}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -584,7 +594,7 @@ function DashboardRH() {
                               variant="secondary"
                               className="text-[10px] hidden sm:inline-flex font-normal"
                             >
-                              {periode.typePeriode === 'DEUX_MOIS' ? 'Bilan 2 mois' : 'Bilan 5 mois'}
+                              {is3M ? 'Période 1 (3 mois)' : 'Période 2 (6 mois)'}
                             </Badge>
                             {isOverdue && (
                               <Badge variant="destructive" className="text-[10px]">
@@ -599,16 +609,14 @@ function DashboardRH() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
-                           className="text-xs h-7 cursor-pointer border-border  bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
-                                                 >
-                                                   Consulter
-                                                 </Button>
-                       
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
+                          className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                        >
+                          Consulter
+                        </Button>
                       </div>
                     </div>
                   );
@@ -616,6 +624,7 @@ function DashboardRH() {
               )}
             </div>
           </Card>
+          
 
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center gap-2.5 bg-secondary/20">
@@ -623,8 +632,8 @@ function DashboardRH() {
                 <Calendar className="w-4 h-4" strokeWidth={1.75} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground tracking-tight">Prochaines Échéances</h3>
-                <p className="text-[11px] text-muted-foreground">Periode à venir, anticipés automatiquement</p>
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">Prochaines Échéances (3M / 6M)</h3>
+                <p className="text-[11px] text-muted-foreground">Périodes à venir, calculées automatiquement</p>
               </div>
             </div>
 
@@ -634,11 +643,12 @@ function DashboardRH() {
               ) : (
                 prochaines.map((p) => {
                   const jours = Math.ceil((new Date(p.dateEcheance).getTime() - Date.now()) / 86400000);
+                  const is3M = p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS';
                   return (
                     <div key={p.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center font-medium text-xs shrink-0 bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                          {p.typePeriode === 'DEUX_MOIS' ? '2M' : '5M'}
+                          {is3M ? '3M' : '6M'}
                         </div>
                         <div className="min-w-0">
                           <span className="font-semibold text-foreground text-xs tracking-tight truncate block">{p.salarieNom}</span>
@@ -657,10 +667,52 @@ function DashboardRH() {
               )}
             </div>
           </Card>
+          {/* Planning des Relances Automatiques */}
+<Card className="p-4 bg-gradient-to-br from-red-50/50 via-white to-zinc-50 border border-red-100 rounded-2xl space-y-3 shadow-xs">
+  <div className="flex items-center gap-2 font-bold text-xs text-red-700">
+    <Mail className="w-4 h-4 text-red-600" />
+    <span>Planning des Relances Automatiques</span>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+      <div>
+        <span className="font-bold text-zinc-900 block">Email 1 (J-21)</span>
+        <span className="text-[10px] text-muted-foreground">Notification initiale</span>
+      </div>
+      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+        En cours
+      </Badge>
+    </div>
+
+    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+      <div>
+        <span className="font-bold text-zinc-900 block">Email 2 (J-14)</span>
+        <span className="text-[10px] text-muted-foreground">Relance intermédiaire</span>
+      </div>
+      <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200">
+        En relance
+      </Badge>
+    </div>
+
+    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+      <div>
+        <span className="font-bold text-zinc-900 block">Email 3 (J-7)</span>
+        <span className="text-[10px] text-muted-foreground">Relance urgente / retard</span>
+      </div>
+      <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
+        En retard
+      </Badge>
+    </div>
+  </div>
+</Card>
         </div>
 
-        {/* ── Right Column (1 Col): Flux des Emails Automatiques ── */}
+        {/* ── Right Column (1 Col): Cycle Emails & Journal ── */}
         <div className="space-y-6">
+          {/* Automatic Email Schedule Legend */}
+       
+
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-2">
@@ -669,65 +721,59 @@ function DashboardRH() {
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-foreground tracking-tight">
-                    Emails Automatiques
+                    Journal des Emails Automatiques
                   </h3>
                   <p className="text-[10px] text-muted-foreground">
-                    Journal d’envoi des notifications automatiques
+                    Historique des envois selon le statut
                   </p>
                 </div>
               </div>
-
-            
             </div>
 
             <div className="divide-y divide-border/60 max-h-[540px] overflow-y-auto">
-              {emails.slice(0, 6).map((mail) => (
-                <div
-                  key={mail.id}
-                  onClick={() => openEmailModal(mail)}
-                  className="p-3.5 hover:bg-secondary/40 transition-colors cursor-pointer space-y-1.5"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-[9px] font-medium px-2 py-0.5 rounded border ${
-                      mail.typeEmail === 'RAPPEL_RETARD_J2'
-                        ? 'bg-rose-50/70 text-rose-700 border-rose-200/70'
-                        : mail.typeEmail === 'CONFIRMATION_RH'
-                        ? 'bg-emerald-50/70 text-emerald-800 border-emerald-200/70'
-                        : 'bg-zinc-100 text-zinc-700 border-zinc-200/70'
-                    }`}>
-                      {mail.typeEmail.replace(/_/g, ' ')}
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {mail.heureEnvoi}
-                    </span>
-                  </div>
+              {emails.slice(0, 6).map((mail) => {
+                const config = getEmailBadgeConfig(mail.typeEmail);
 
-                  <p className="text-xs font-medium text-foreground tracking-tight line-clamp-1">
-                    {mail.objet}
-                  </p>
+                return (
+                  <div
+                    key={mail.id}
+                    onClick={() => openEmailModal(mail)}
+                    className="p-3.5 hover:bg-secondary/40 transition-colors cursor-pointer space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[9px] font-medium px-2 py-0.5 rounded border ${config.class}`}>
+                        {config.label}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {mail.heureEnvoi}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                    <span className="truncate max-w-[170px]">
-                      À : <strong className="text-foreground/80 font-medium">{mail.destinataireNom}</strong>
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEmailModal(mail);
-                      }}
-                      className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-foreground cursor-pointer bg-red-50"
-                    >
-                      <span>Voir</span>
-                      <ExternalLink className="w-2.5 h-2.5 ml-1" />
-                    </Button>
+                    <p className="text-xs font-medium text-foreground tracking-tight line-clamp-1">
+                      {mail.objet}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                      <span className="truncate max-w-[170px]">
+                        À : <strong className="text-foreground/80 font-medium">{mail.destinataireNom}</strong>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEmailModal(mail);
+                        }}
+                        className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-foreground cursor-pointer bg-red-50"
+                      >
+                        <span>Voir</span>
+                        <ExternalLink className="w-2.5 h-2.5 ml-1" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-
-        
           </Card>
         </div>
       </div>

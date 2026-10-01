@@ -21,7 +21,7 @@
 ## 1. Vue d'ensemble du Projet
 
 **Premium Essai Manager** est une solution applicative développée pour la Direction des Ressources Humaines de **Groupe Premium**. Elle digitalise, fiabilise et automatise l'intégralité du cycle de suivi des **périodes d'essai** des collaborateurs :
-- Calcul automatique des échéances réglementaires et contractuelles : **Jalon 2 Mois** (bilan d'intégration précoce) et **Jalon 5 Mois** (décision stratégique de confirmation, renouvellement ou rupture).
+- Calcul automatique des échéances réglementaires et contractuelles : **Periode 2 Mois** (bilan d'intégration précoce) et **Periode 5 Mois** (décision stratégique de confirmation, renouvellement ou rupture).
 - Moteur d'automatisation simulant un batch quotidien à **09:00:00**.
 - Détection proactive des retards de validation supérieurs à 2 jours ouvrés avec système de relance en un clic.
 - Simulation multi-rôles : **DRH / Admin**, **Responsable N+1** et **Salarié**.
@@ -224,7 +224,7 @@ flowchart TD
 ## 5. Fonctionnalités Métier Opérationnelles
 
 - **Gestion des Periode & Calendrier Automatique :**
-  Dès l'ajout d'un salarié, le système calcule automatiquement la date du jalon à 2 mois et celle à 5 mois, et pré-programme l'envoi des formulaires.
+  Dès l'ajout d'un salarié, le système calcule automatiquement la date du Periode à 2 mois et celle à 5 mois, et pré-programme l'envoi des formulaires.
 - **Moteur Batch 09:00 :**
   Un bouton interactif permet de simuler le déclenchement de la tâche planifiée quotidienne de 09h00, scannant les échéances et générant les relances nécessaires.
 - **Gestion des Retards & Relances Immédiates :**

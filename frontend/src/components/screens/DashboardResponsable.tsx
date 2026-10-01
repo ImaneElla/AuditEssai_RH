@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertTriangle,
+  Bell,
   Calendar,
   CheckCircle2,
   ChevronRight,
@@ -143,6 +144,15 @@ function KpiCard({
   );
 }
 
+type Notification = {
+  id: string;
+  tone: 'red' | 'dark' | 'neutral';
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  periodeId: string | number;
+};
+
 // ============================================================================
 // 2. DASHBOARD RESPONSABLE
 // ============================================================================
@@ -153,10 +163,13 @@ export default function DashboardResponsable() {
     periodes,
     navigateTo,
     currentResponsable,
+    parametres
   } = useApp();
 
   const aFaire = periodes.filter(
     (p) =>
+      p.statut === "EN_COURS" ||
+      p.statut === "EN_RELANCE" ||
       p.statut === "PLANIFIEE" ||
       p.statut === "EMAIL_ENVOYE" ||
       p.statut === "EN_ATTENTE"
@@ -172,10 +185,41 @@ export default function DashboardResponsable() {
     (p) => p.statut === "EN_RETARD"
   );
 
-  const responsableName = currentResponsable
-    ? `${currentResponsable.firstName} ${currentResponsable.lastName}`
-    : 'Responsable';
-  const directionName = currentResponsable?.directionName ?? '—';
+  const notifications: Notification[] = useMemo(() => {
+    const late: Notification[] = retards.map((p) => ({
+      id: `late-${p.id}`,
+      tone: 'red',
+      icon: AlertTriangle,
+      title: `Retard imminent (${p.salarieNom})`,
+      description: `Échéance ${p.dateEcheance}`,
+      periodeId: p.id,
+    }));
+
+    const todo: Notification[] = aFaire.map((p) => ({
+      id: `todo-${p.id}`,
+      tone: 'dark',
+      icon: Clock,
+      title: `Période en cours (${p.salarieNom})`,
+      description: `Échéance ${p.dateEcheance}`,
+      periodeId: p.id,
+    }));
+
+    const done: Notification[] = soumises.map((p) => ({
+      id: `done-${p.id}`,
+      tone: 'neutral',
+      icon: CheckCircle2,
+      title: `Évaluation soumise (${p.salarieNom})`,
+      description: `Transmise à la RH`,
+      periodeId: p.id,
+    }));
+
+    return [...late, ...todo, ...done].slice(0, 6);
+  }, [periodes, aFaire, retards, soumises]);
+
+  const prenomResponsable = currentResponsable
+    ? currentResponsable.firstName
+    : (parametres?.profil?.prenom || 'Responsable');
+  const directionName = currentResponsable?.directionName ?? parametres?.profil?.direction ?? '—';
 
   return (
     <div className="space-y-7 font-sans">
@@ -217,7 +261,7 @@ export default function DashboardResponsable() {
             tracking-tight
             text-zinc-950
           ">
-            Bienvenue, {responsableName}
+            Bonjour {prenomResponsable}
           </h2>
 
           <p className="
@@ -225,7 +269,7 @@ export default function DashboardResponsable() {
             text-[14px]
             text-zinc-500
           ">
-            de {directionName}
+            {directionName}
           </p>
         </div>
 
@@ -330,7 +374,6 @@ export default function DashboardResponsable() {
             size="sm"
             onClick={() => {
               const first = retards[0];
-
               if (first) {
                 navigateTo(
                   "formulaire-evaluation",
@@ -354,7 +397,7 @@ export default function DashboardResponsable() {
             "
           >
             <FileText className="mr-2 h-3 w-3" />
-            Compléter l&apos;évaluation
+            Remplir l&apos;évaluation
           </Button>
         </div>
       )}
@@ -374,7 +417,7 @@ export default function DashboardResponsable() {
         <KpiCard
           title="Évaluations à faire"
           value={aFaire.length}
-          suffix="Periode 2M et 5M"
+          suffix="Période 3M et 6M"
           badgeLabel="À traiter"
           badgeIcon={Clock}
           cardIcon={Clock}
@@ -408,6 +451,7 @@ export default function DashboardResponsable() {
         />
       </div>
 
+
       {/* MAIN */}
       <div className="
         grid
@@ -416,7 +460,7 @@ export default function DashboardResponsable() {
         xl:grid-cols-4
       ">
 
-        {/* EVALUATIONS EN RETARD UNIQUEMENT */}
+        {/* LISTE DES SALARIÉS AFFECTÉS & ÉVALUATIONS */}
         <Card className="
           overflow-hidden
           rounded-2xl
@@ -424,7 +468,7 @@ export default function DashboardResponsable() {
           border-zinc-200
           bg-white
           shadow-sm
-          xl:col-span-4
+          xl:col-span-3
         ">
           <div className="
             flex
@@ -437,27 +481,27 @@ export default function DashboardResponsable() {
           ">
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-6 w-6 mt-1 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                  <AlertTriangle className="h-4 w-4" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                  <Users className="h-4 w-4" />
                 </div>
 
                 <h3 className="text-sm font-semibold text-zinc-900">
-                  Évaluations en retard
+                  Mes Salariés & Évaluations de Période d&apos;Essai
                 </h3>
               </div>
               <p className="
-                mt-0.5 ml-7
-                text-[10px] 
+                mt-0.5 ml-9
+                text-[10px]
                 text-zinc-500
               ">
-                {retards.length} évaluation{retards.length > 1 ? "s" : ""} nécessitant une régularisation
+                Suivi individuel et actions d&apos;évaluation
               </p>
             </div>
 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigateTo("retards")}
+              onClick={() => navigateTo("periodes")}
               className="
                 h-8
                 text-[10px]
@@ -467,7 +511,7 @@ export default function DashboardResponsable() {
                 cursor-pointer
               "
             >
-              Toutes
+              Toutes les périodes
               <ChevronRight className="
                 ml-1
                 h-3
@@ -480,7 +524,7 @@ export default function DashboardResponsable() {
             divide-y
             divide-zinc-100
           ">
-            {retards.length === 0 ? (
+            {periodes.length === 0 ? (
               <div className="
                 flex
                 flex-col
@@ -498,20 +542,40 @@ export default function DashboardResponsable() {
                   items-center
                   justify-center
                   rounded-full
-                  bg-emerald-50
-                  text-emerald-600
+                  bg-zinc-50
+                  text-zinc-400
                 ">
-                  <CheckCircle2 className="h-6 w-6" />
+                  <Users className="h-6 w-6" />
                 </div>
                 <p className="text-xs font-bold text-zinc-900">
-                  Aucun retard à signaler
-                </p>
-                <p className="text-[11px] text-zinc-500">
-                  Toutes les évaluations de votre équipe sont à jour.
+                  Aucun salarié affecté
                 </p>
               </div>
             ) : (
-              retards.map((periode) => {
+              periodes.map((periode) => {
+                const isRetard = periode.statut === 'EN_RETARD';
+                const isCompletee = periode.statut === 'COMPLETEE' || periode.statut === 'VALIDEE_RH';
+                const isEnCoursOrRelance = periode.statut === 'EN_COURS' || periode.statut === 'EN_RELANCE' || periode.statut === 'PLANIFIEE';
+
+                const badgeLabel = 
+                  periode.statut === 'EN_RETARD' ? 'En retard' :
+                  periode.statut === 'EN_RELANCE' ? 'En relance' :
+                  periode.statut === 'EN_COURS' ? 'En cours' :
+                  periode.statut === 'COMPLETEE' ? 'Complétée' :
+                  periode.statut === 'VALIDEE_RH' ? 'Validée RH' :
+                  periode.statut === 'RUPTURE' ? 'Rupture' : 'Planifiée';
+
+                const badgeClass =
+                  periode.statut === 'EN_RETARD' ? 'bg-red-100 text-red-700 border-red-200' :
+                  periode.statut === 'EN_RELANCE' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                  periode.statut === 'EN_COURS' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                  periode.statut === 'RUPTURE' ? 'bg-rose-900 text-white border-rose-950' :
+                  'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                const typeLabel = periode.typePeriode === 'TROIS_MOIS' || periode.typePeriode === 'DEUX_MOIS'
+                  ? 'Période 1 (3 mois)'
+                  : 'Période 2 (6 mois)';
+
                 return (
                   <div
                     key={periode.id}
@@ -523,7 +587,7 @@ export default function DashboardResponsable() {
                       gap-4
                       p-4
                       transition-colors
-                      hover:bg-red-50/30
+                      hover:bg-zinc-50/60
                     "
                   >
                     <div className="
@@ -552,23 +616,28 @@ export default function DashboardResponsable() {
                       </div>
 
                       <div className="min-w-0">
-                        <button
-                          onClick={() =>
-                            navigateTo("detail-salarie", {
-                              salarieId: periode.salarieId,
-                            })
-                          }
-                          className="
-                            truncate
-                            text-xs
-                            font-bold
-                            text-zinc-950
-                            hover:text-red-600
-                            cursor-pointer
-                          "
-                        >
-                          {periode.salarieNom}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              navigateTo("detail-salarie", {
+                                salarieId: periode.salarieId,
+                              })
+                            }
+                            className="
+                              truncate
+                              text-xs
+                              font-bold
+                              text-zinc-950
+                              hover:text-red-600
+                              cursor-pointer
+                            "
+                          >
+                            {periode.salarieNom}
+                          </button>
+                          <Badge variant="outline" className={`text-[9px] font-semibold ${badgeClass}`}>
+                            {badgeLabel}
+                          </Badge>
+                        </div>
 
                         <p className="
                           mt-0.5
@@ -577,6 +646,8 @@ export default function DashboardResponsable() {
                           text-zinc-500
                         ">
                           {periode.salariePoste}
+                          {" • "}
+                          {typeLabel}
                           {" • "}
                           Échéance :{" "}
                           <span className="font-mono">
@@ -592,48 +663,191 @@ export default function DashboardResponsable() {
                       items-center
                       gap-2
                     ">
-                      <span className="
-                        rounded-full
-                        border
-                        border-red-100
-                        bg-red-50
-                        px-2
-                        py-1
-                        text-[9px]
-                        font-bold
-                        text-red-600
-                      ">
-                        +{periode.joursRetard}j
-                      </span>
+                      {/* SPEC SECTION 3 LOGIC:
+                          - EN_RETARD -> Bouton "Remplir"
+                          - EN_COURS / EN_RELANCE -> Aucun bouton
+                          - COMPLETEE / VALIDEE_RH -> Bouton "Consulter" (lecture seule)
+                      */}
+                      {isRetard && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigateTo("formulaire-evaluation", {
+                              periodeId: periode.id,
+                            })
+                          }
+                          className="
+                            h-8
+                            rounded-lg
+                            border-red-200
+                            text-[10px]
+                            font-semibold
+                            cursor-pointer
+                            bg-red-600 
+                            text-white
+                            hover:bg-red-700
+                          "
+                        >
+                          Remplir
+                          <ChevronRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      )}
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          navigateTo("formulaire-evaluation", {
-                            periodeId: periode.id,
-                          })
-                        }
-                        className="
-                          h-8
-                          rounded-lg
-                          border-zinc-200
-                          text-[10px]
-                          font-semibold
-                          cursor-pointer
-                          bg-gradient-to-b from-red-500 to-red-950 
-                          text-white
-                        "
-                      >
-                        Remplir
-                        <ChevronRight className="
-                          ml-1
-                          h-3
-                          w-3
-                        " />
-                      </Button>
+                      {isCompletee && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigateTo("formulaire-evaluation", {
+                              periodeId: periode.id,
+                            })
+                          }
+                          className="
+                            h-8
+                            rounded-lg
+                            border-zinc-200
+                            text-[10px]
+                            font-semibold
+                            cursor-pointer
+                            bg-zinc-100
+                            text-zinc-800
+                            hover:bg-zinc-200
+                          "
+                        >
+                          Consulter
+                          <ChevronRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      )}
+
+                      {isEnCoursOrRelance && (
+                        <span className="text-[10px] text-zinc-400 font-medium italic px-2">
+                          Aucune action requise
+                        </span>
+                      )}
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
+
+        {/* NOTIFICATIONS */}
+        <Card className="
+          overflow-hidden
+          rounded-2xl
+          border
+          border-zinc-200
+          bg-white
+          shadow-sm
+          xl:col-span-1
+          self-start
+        ">
+          <div className="
+            flex
+            items-center
+            justify-between
+            border-b
+            border-zinc-100
+            px-5
+            py-4
+          ">
+            <div className="flex items-center gap-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                <Bell className="h-4 w-4" />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-900">
+                Dernières nouvelles
+              </h3>
+            </div>
+
+            {notifications.length > 0 && (
+              <Badge className="bg-red-600 text-white border-0 text-[10px] font-semibold px-2 py-0.5 hover:bg-red-600">
+                {notifications.length}
+              </Badge>
+            )}
+          </div>
+
+          <div className="divide-y divide-zinc-100">
+            {notifications.length === 0 ? (
+              <div className="
+                flex
+                flex-col
+                items-center
+                justify-center
+                gap-2
+                px-5
+                py-12
+                text-center
+              ">
+                <div className="
+                  flex
+                  h-12
+                  w-12
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-zinc-50
+                  text-zinc-400
+                ">
+                  <Bell className="h-6 w-6" />
+                </div>
+                <p className="text-xs font-bold text-zinc-900">
+                  Aucune notification
+                </p>
+                <p className="text-[11px] text-zinc-500">
+                  Vous êtes à jour.
+                </p>
+              </div>
+            ) : (
+              notifications.map((n) => {
+                const Icon = n.icon;
+                const toneClass =
+                  n.tone === 'red'
+                    ? 'bg-red-50 text-red-600 border-red-100'
+                    : n.tone === 'dark'
+                      ? 'bg-zinc-900 text-white border-zinc-900'
+                      : 'bg-zinc-100 text-zinc-600 border-zinc-200';
+
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() =>
+                      navigateTo("formulaire-evaluation", {
+                        periodeId: Number(n.periodeId),
+                      })
+                    }
+                    className="
+                      group
+                      flex
+                      w-full
+                      items-start
+                      gap-3
+                      p-4
+                      text-left
+                      transition-colors
+                      hover:bg-red-50/30
+                      cursor-pointer
+                    "
+                  >
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-zinc-950 group-hover:text-red-600">
+                        {n.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-[10px] text-zinc-500">
+                        {n.description}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="mt-1 h-3 w-3 shrink-0 text-zinc-400 group-hover:text-red-600" />
+                  </button>
                 );
               })
             )}

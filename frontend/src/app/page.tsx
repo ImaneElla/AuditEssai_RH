@@ -16,6 +16,8 @@ import AjouterResponsable from '@/components/screens/AjouterResponsable';
 import GestionResponsable from '@/components/screens/GestionResponsable';
 import DashboardResponsable from '@/components/screens/DashboardResponsable';
 import NotificationsScreen from '@/components/screens/NotificationsScreen';
+import ParametresScreen from '@/components/screens/ParametresScreen';
+import AideScreen from '@/components/screens/AideScreen';
 
 export default function Page() {
   const { currentScreen } = useApp();
@@ -49,6 +51,10 @@ export default function Page() {
         return <AjouterResponsable />;
       case 'dashboard-responsable':
         return <DashboardResponsable />;
+      case 'parametres':
+        return <ParametresScreen />;
+      case 'aide':
+        return <AideScreen />;
       default:
         return <DashboardScreen />;
     }

@@ -12,6 +12,12 @@ import {
   NotificationItem,
   DecisionPeriode,
   User,
+  Parametres,
+  TemplateEmailSetting,
+  CompteSetting,
+  ThemeMode,
+  ProfilSetting,
+  TypeEmail,
   FormulaireEvaluationData
 } from '../types';
 import { 
@@ -40,7 +46,46 @@ export type ScreenId =
   | 'ajouter-responsable'
   | 'gestion-responsable'
   | 'detail-responsable'
-  | 'dashboard-responsable';
+  | 'dashboard-responsable'
+  | 'parametres'
+  | 'aide';
+
+const initialParametres: Parametres = {
+  templatesEmail: [
+    {
+      id: 'email1',
+      nom: 'Email 1 - Notification initiale (J-21)',
+      delai: 'J-21 (3 semaines avant l\'échéance)',
+      objet: '[GROUPE PREMIUM] Ouverture d\'évaluation - {salarie} ({periode})',
+      contenu: 'Bonjour {responsable},\n\nLe premier bilan d\'évaluation ({periode}) concernant {salarie} arrive à échéance le {echeance}.\n\nMerci de préparer et compléter la fiche d\'évaluation dans votre espace manager.\n\nDirection des Ressources Humaines - Groupe Premium'
+    },
+    {
+      id: 'email2',
+      nom: 'Email 2 - Relance intermédiaire (J-14)',
+      delai: 'J-14 (2 semaines avant l\'échéance)',
+      objet: '[GROUPE PREMIUM - RELANCE] Rappel d\'évaluation - {salarie} ({periode})',
+      contenu: 'Bonjour {responsable},\n\nCeci est un rappel : l\'évaluation d\'essai ({periode}) de {salarie} doit être complétée avant le {echeance}.\n\nMerci de valider le formulaire sous les plus brefs délais.\n\nDirection des Ressources Humaines - Groupe Premium'
+    },
+    {
+      id: 'email3',
+      nom: 'Email 3 - Relance urgente (J-7)',
+      delai: 'J-7 (1 semaine avant l\'échéance)',
+      objet: '[GROUPE PREMIUM - URGENT] Évaluation en retard imminent - {salarie} ({periode})',
+      contenu: 'ATTENTION : L\'évaluation d\'essai ({periode}) de {salarie} arrive à échéance le {echeance}.\n\nCe bilan est obligatoire pour la sécurisation juridique du contrat. Veuillez renseigner le formulaire aujourd\'hui même.\n\nDirection des Ressources Humaines - Groupe Premium'
+    }
+  ],
+  compte: {
+    nomExpediteur: 'Direction des Ressources Humaines - Groupe Premium',
+    emailExpediteur: 'rh@groupe-premium.com'
+  },
+  theme: 'light',
+  profil: {
+    nom: 'Benali',
+    prenom: 'Imane',
+    email: 'rh@groupe-premium.com',
+    direction: 'Ressources Humaines & Talents'
+  }
+};
 
 interface AppContextType {
   currentScreen: ScreenId;
@@ -59,16 +104,23 @@ interface AppContextType {
   openEmailModal: (email: HistoriqueEmail) => void;
   closeEmailModal: () => void;
   isEmailModalOpen: boolean;
+  isAddSalarieModalOpen: boolean;
+  openAddSalarieModal: () => void;
+  closeAddSalarieModal: () => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   toggleSidebar: () => void;
+
+  // Settings / Paramètres
+  parametres: Parametres;
+  updateParametres: (newParametres: Partial<Parametres>) => void;
 
   // Raw & Filtered Data by Role
   directions: Direction[];
   responsables: Responsable[];
   users: User[];
   allSalaries: Salarie[];
-  salaries: Salarie[]; // Filtered by currentRole (Marc Delattre sees only his team)
+  salaries: Salarie[]; // Filtered by currentRole
   allPeriodes: PeriodeEvaluation[];
   periodes: PeriodeEvaluation[]; // Filtered by currentRole
   evaluations: EvaluationDetail[];
@@ -134,8 +186,9 @@ interface AppContextType {
     axesAmelioration: string;
     avisResponsable: string;
     avisSalarie?: string;
-    recommandation: 'CONFIRMATION' | 'RENOUVELLEMENT' | 'RUPTURE';
+    recommandation: 'VALIDATION' | 'CONFIRMATION' | 'RENOUVELLEMENT' | 'TITULARISATION' | 'RUPTURE';
     signatureResponsable: string;
+    motifRupture?: string;
     formulaireComplet?: FormulaireEvaluationData;
   }) => void;
   validerDecisionRH: (periodeId: number, decision: DecisionPeriode, motif: string) => void;
@@ -143,7 +196,6 @@ interface AppContextType {
   markNotificationAsRead: (id: number) => void;
   markAllNotificationsAsRead: () => void;
   
-  // Toast notifications for UI feedback
   toastMessage: string | null;
   showToast: (msg: string) => void;
 }
@@ -158,8 +210,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedResponsableId, setSelectedResponsableId] = useState<number>(1);
   const [selectedEmail, setSelectedEmail] = useState<HistoriqueEmail | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState<boolean>(false);
+  const [isAddSalarieModalOpen, setIsAddSalarieModalOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openAddSalarieModal = () => setIsAddSalarieModalOpen(true);
+  const closeAddSalarieModal = () => setIsAddSalarieModalOpen(false);
+
+  const [parametres, setParametres] = useState<Parametres>(initialParametres);
 
   const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
 
@@ -172,44 +230,150 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [emails, setEmails] = useState<HistoriqueEmail[]>(initialEmails);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
 
-  // Active Responsable when role == RESPONSABLE (Marc Delattre, id 1)
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Charger depuis localStorage lors du premier montage
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedSalaries = localStorage.getItem('gp_salaries');
+        if (savedSalaries) setSalariesList(JSON.parse(savedSalaries));
+
+        const savedPeriodes = localStorage.getItem('gp_periodes');
+        if (savedPeriodes) setPeriodesList(JSON.parse(savedPeriodes));
+
+        const savedEvaluations = localStorage.getItem('gp_evaluations');
+        if (savedEvaluations) setEvaluations(JSON.parse(savedEvaluations));
+
+        const savedEmails = localStorage.getItem('gp_emails');
+        if (savedEmails) setEmails(JSON.parse(savedEmails));
+
+        const savedNotifications = localStorage.getItem('gp_notifications');
+        if (savedNotifications) setNotifications(JSON.parse(savedNotifications));
+
+        const savedResponsables = localStorage.getItem('gp_responsables');
+        if (savedResponsables) setResponsables(JSON.parse(savedResponsables));
+
+        const savedParametres = localStorage.getItem('gp_parametres');
+        if (savedParametres) setParametres(JSON.parse(savedParametres));
+      } catch (err) {
+        console.error('Error loading data from localStorage', err);
+      }
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // Sauvegarder automatiquement dans localStorage à chaque modification
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_salaries', JSON.stringify(salariesList));
+    }
+  }, [salariesList, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_periodes', JSON.stringify(periodesList));
+    }
+  }, [periodesList, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_evaluations', JSON.stringify(evaluations));
+    }
+  }, [evaluations, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_emails', JSON.stringify(emails));
+    }
+  }, [emails, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_notifications', JSON.stringify(notifications));
+    }
+  }, [notifications, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_responsables', JSON.stringify(responsables));
+    }
+  }, [responsables, isLoaded]);
+
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_parametres', JSON.stringify(parametres));
+    }
+  }, [parametres, isLoaded]);
+
+  React.useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (parametres.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (parametres.theme === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [parametres.theme]);
+
+  const updateParametres = (newParams: Partial<Parametres>) => {
+    setParametres(prev => ({ ...prev, ...newParams }));
+    showToast("Paramètres mis à jour avec succès.");
+  };
+
+  // Active Responsable when role == RESPONSABLE
   const currentResponsable = useMemo(() => {
-    return responsables.find(r => r.id === 1) || responsables[0];
-  }, [responsables]);
+    if (!responsables || responsables.length === 0) return null;
+    return (
+      responsables.find(r => r.id === selectedResponsableId) ||
+      responsables.find(r => r.id === 1) ||
+      responsables[0] ||
+      null
+    );
+  }, [responsables, selectedResponsableId]);
 
   const currentUser = useMemo(() => {
     if (currentRole === 'ADMIN_RH') {
-      return users.find(u => u.role === 'ADMIN_RH') || users[0];
+      return users.find(u => u.role === 'ADMIN_RH') || users[0] || null;
     }
     if (currentRole === 'RESPONSABLE') {
-      return users.find(u => u.responsableId === currentResponsable.id) || users[1];
+      if (currentResponsable) {
+        const found = users.find(u => u.responsableId === currentResponsable.id);
+        if (found) return found;
+      }
+      return users.find(u => u.role === 'RESPONSABLE') || users[1] || users[0] || null;
     }
-    return users[0];
+    return users[0] || null;
   }, [currentRole, currentResponsable, users]);
 
   const setCurrentRole = (role: UserRole) => {
     setCurrentRoleState(role);
     if (role === 'RESPONSABLE') {
       setCurrentScreen('dashboard');
-      showToast("Connecté en tant que Responsable : Marc Delattre (Équipe Patrimoine)");
+      const name = currentResponsable ? `${currentResponsable.firstName} ${currentResponsable.lastName}` : 'Responsable';
+      showToast(`Connecté en tant que Responsable : ${name}`);
     } else {
       setCurrentScreen('dashboard');
-      showToast("Connecté en tant que DRH / Administrateur (Accès complet)");
+      showToast("Connecté en tant que DRH / Administrateur");
     }
   };
 
-  // Filter salaries by currentRole
-  // RESPONSABLE only sees his assigned subordinates
   const salaries = useMemo(() => {
-    if (currentRole === 'RESPONSABLE') {
+    if (currentRole === 'RESPONSABLE' && currentResponsable) {
       return salariesList.filter(s => s.responsableId === currentResponsable.id);
     }
     return salariesList;
   }, [salariesList, currentRole, currentResponsable]);
 
-  // Filter periodes by currentRole
   const periodes = useMemo(() => {
-    if (currentRole === 'RESPONSABLE') {
+    if (currentRole === 'RESPONSABLE' && currentResponsable) {
       return periodesList.filter(p => p.responsableId === currentResponsable.id);
     }
     return periodesList;
@@ -221,7 +385,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const navigateTo = (screen: ScreenId, params?: { salarieId?: number; periodeId?: number; emailId?: number; responsableId?: number }) => {
-    // Règle métier : Le responsable ne peut PAS accéder aux écrans d'administration RH
     const rhOnlyScreens: ScreenId[] = [
       'ajouter-salarie',
       'responsables',
@@ -232,8 +395,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       'emails',
     ];
     if (currentRole === 'RESPONSABLE' && rhOnlyScreens.includes(screen)) {
-      showToast("Accès restreint : Cette fonctionnalité administrative est réservée à la DRH.");
+      showToast("Accès restreint : Cette fonctionnalité est réservée à la DRH.");
       setCurrentScreen('dashboard');
+      return;
+    }
+
+    if (screen === 'ajouter-salarie') {
+      setCurrentScreen('salaries');
+      setIsAddSalarieModalOpen(true);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
 
@@ -265,6 +437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return d.toISOString().split('T')[0];
   };
 
+  // Add Salarié -> Creates ONLY Période 1 (3 mois) per EPIC 2 logic
   const addSalarie = (data: {
     firstName: string;
     lastName: string;
@@ -280,7 +453,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const direction = directions.find(d => d.id === data.directionId);
     const responsable = responsables.find(r => r.id === data.responsableId);
     const newId = salariesList.length > 0 ? Math.max(...salariesList.map(s => s.id)) + 1 : 1;
-    const dateFinPrevisionnelle = addMonthsToDate(data.dateEmbauche, data.dureeInitialeMois);
+    const dateFinPrevisionnelle = addMonthsToDate(data.dateEmbauche, 3);
     const matricule = data.matricule || `GP-${new Date().getFullYear()}-${String(newId).padStart(3, '0')}`;
 
     const newSalarie: Salarie = {
@@ -295,26 +468,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       poste: data.poste,
       dateIntegration: data.dateEmbauche,
       dateEmbauche: data.dateEmbauche,
-      dureeInitialeMois: data.dureeInitialeMois,
+      dureeInitialeMois: data.dureeInitialeMois || 3,
       dateFinPrevisionnelle,
       directionId: data.directionId,
       directionName: direction ? direction.name : 'Direction Générale',
       responsableId: data.responsableId,
       responsableNom: responsable ? `${responsable.firstName} ${responsable.lastName}` : 'Directeur Non Assigné',
       statutEssai: 'EN_COURS',
-      jalonActuel: 'DEUX_MOIS'
+      PeriodeActuel: 'TROIS_MOIS',
+      bloqueEmails: false,
+      actif: true
     };
 
     setSalariesList(prev => [newSalarie, ...prev]);
 
-    const date2M = addMonthsToDate(data.dateEmbauche, 2);
-    const date5M = addMonthsToDate(data.dateEmbauche, 5);
+    const date3M = addMonthsToDate(data.dateEmbauche, 3);
+    const newPeriode3MId = periodesList.length > 0 ? Math.max(...periodesList.map(p => p.id)) + 1 : 10;
 
-    const newPeriode2MId = periodesList.length > 0 ? Math.max(...periodesList.map(p => p.id)) + 1 : 10;
-    const newPeriode5MId = newPeriode2MId + 1;
-
-    const periode2M: PeriodeEvaluation = {
-      id: newPeriode2MId,
+    const periode3M: PeriodeEvaluation = {
+      id: newPeriode3MId,
       salarieId: newId,
       salarieNom: `${data.firstName} ${data.lastName}`,
       salarieEmail: data.email,
@@ -323,52 +495,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       responsableNom: responsable ? `${responsable.firstName} ${responsable.lastName}` : '',
       responsableEmail: responsable ? responsable.email : '',
       directionName: direction ? direction.name : '',
-      typePeriode: 'DEUX_MOIS',
-      dateEcheance: date2M,
-      dateDeclenchementEmail: date2M,
+      typePeriode: 'TROIS_MOIS',
+      numeroPeriode: 1,
+      dateEcheance: date3M,
+      dateDeclenchementEmail: date3M,
       heureDeclenchement: '09:00:00',
-      statut: 'PLANIFIEE',
+      statut: 'EN_COURS',
       decisionFinale: 'EN_ATTENTE',
-      tokenAccesSalarie: `sec-eval-${newId}-2m-${Date.now().toString(36)}`
+      tokenAccesSalarie: `sec-eval-${newId}-3m-${Date.now().toString(36)}`,
+      emailsEnvoyes: {}
     };
 
-    const periode5M: PeriodeEvaluation = {
-      id: newPeriode5MId,
-      salarieId: newId,
-      salarieNom: `${data.firstName} ${data.lastName}`,
-      salarieEmail: data.email,
-      salariePoste: data.poste,
-      responsableId: data.responsableId,
-      responsableNom: responsable ? `${responsable.firstName} ${responsable.lastName}` : '',
-      responsableEmail: responsable ? responsable.email : '',
-      directionName: direction ? direction.name : '',
-      typePeriode: 'CINQ_MOIS',
-      dateEcheance: date5M,
-      dateDeclenchementEmail: date5M,
-      heureDeclenchement: '09:00:00',
-      statut: 'PLANIFIEE',
-      decisionFinale: 'EN_ATTENTE',
-      tokenAccesSalarie: `sec-eval-${newId}-5m-${Date.now().toString(36)}`
-    };
-
-    setPeriodesList(prev => [periode2M, periode5M, ...prev]);
+    setPeriodesList(prev => [periode3M, ...prev]);
 
     const newNotif: NotificationItem = {
       id: Date.now(),
       titre: `Nouveau salarié enregistré : ${data.firstName} ${data.lastName} (${matricule})`,
-      message: `Périodes d'essai configurées automatiquement : Periode 2 mois (${date2M}) et 5 mois (${date5M}).`,
+      message: `Période 1 (3 mois) configurée automatiquement pour le ${date3M}.`,
       type: 'EVALUATION',
       priorite: 'MOYENNE',
       dateCreation: new Date().toISOString().split('T')[0],
       heureCreation: new Date().toLocaleTimeString('fr-FR'),
       estLue: false,
-      cibleRole: 'ADMIN_RH',
-      lienEcran: 'salaries',
+      cibleRole: 'TOUS',
+      lienEcran: 'detail-salarie',
       targetId: newId
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    showToast(`Salarié ${data.firstName} ${data.lastName} (${matricule}) créé avec succès.`);
+    showToast(`Salarié ${data.firstName} ${data.lastName} (${matricule}) créé. Période 1 (3M) générée.`);
     setSelectedSalarieId(newId);
     navigateTo('detail-salarie', { salarieId: newId });
   };
@@ -474,6 +629,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const relancerRetard = (periodeId: number) => {
     const periode = periodesList.find(p => p.id === periodeId);
     if (!periode) return;
+    const salarie = salariesList.find(s => s.id === periode.salarieId);
+    if (salarie?.bloqueEmails) {
+      showToast("Emails bloqués pour ce salarié (statut Rupture).");
+      return;
+    }
 
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString('fr-FR');
@@ -482,7 +642,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (p.id === periodeId) {
         return {
           ...p,
-          dateDernierRappel: today
+          dateDernierRappel: today,
+          statut: 'EN_RELANCE'
         };
       }
       return p;
@@ -495,40 +656,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       destinataire: periode.responsableEmail,
       destinataireNom: periode.responsableNom,
       roleDestinataire: 'RESPONSABLE',
-      objet: `[RELANCE RH URGENTE J+${periode.joursRetard || 2}] Évaluation en retard - ${periode.salarieNom}`,
-      typeEmail: 'RAPPEL_RETARD_J2',
+      objet: `[RELANCE RH] Évaluation en relance - ${periode.salarieNom}`,
+      typeEmail: 'EMAIL_2_EN_RELANCE',
       dateEnvoi: today,
       heureEnvoi: nowTime,
       statut: 'DELIVRE',
       batchCron: false,
-      contenuCorps: `Madame, Monsieur,\n\nLe pôle Ressources Humaines de Groupe Premium vous informe que le bilan d'évaluation (${periode.typePeriode === 'DEUX_MOIS' ? '2 Mois' : '5 Mois'}) concernant ${periode.salarieNom} accuse un retard de ${periode.joursRetard || 2} jours.\n\nCe retard bloque la sécurisation juridique de la période d'essai. Merci de renseigner impérativement le formulaire sous 24h.\n\nLien vers votre espace manager : https://portail.groupe-premium.com/evaluations/${periode.id}`
+      contenuCorps: `Madame, Monsieur,\n\nLe pôle Ressources Humaines de Groupe Premium vous informe que le bilan d'évaluation (${periode.typePeriode === 'TROIS_MOIS' ? '3 Mois' : '6 Mois'}) concernant ${periode.salarieNom} est en relance (échéance : ${periode.dateEcheance}).\n\nMerci de renseigner le formulaire d'évaluation.`
     };
 
     setEmails(prev => [newEmail, ...prev]);
-
-    const newNotif: NotificationItem = {
-      id: Date.now(),
-      titre: `Relance envoyée à ${periode.responsableNom}`,
-      message: `Email de relance retard pour l'évaluation de ${periode.salarieNom} envoyé avec succès.`,
-      type: 'RETARD',
-      priorite: 'HAUTE',
-      dateCreation: today,
-      heureCreation: nowTime,
-      estLue: false,
-      cibleRole: 'ADMIN_RH',
-      lienEcran: 'emails'
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    showToast(`Relance envoyée immédiatement à ${periode.responsableNom}`);
+    showToast(`Relance envoyée à ${periode.responsableNom}`);
   };
 
   const relancerTousLesRetards = () => {
-    const enRetard = periodesList.filter(p => p.statut === 'EN_RETARD');
-    enRetard.forEach(p => relancerRetard(p.id));
-    showToast(`${enRetard.length} relance(s) envoyée(s) aux responsables en retard.`);
+    const relances = periodesList.filter(p => p.statut === 'EN_RELANCE' || p.statut === 'EN_RETARD');
+    relances.forEach(p => relancerRetard(p.id));
+    showToast(`${relances.length} relance(s) envoyée(s).`);
   };
 
+  // Submit Evaluation (Epic 4, 5, 6)
   const submitEvaluation = (data: {
     periodeId: number;
     competencesTechniques: number;
@@ -539,26 +686,107 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     axesAmelioration: string;
     avisResponsable: string;
     avisSalarie?: string;
-    recommandation: 'CONFIRMATION' | 'RENOUVELLEMENT' | 'RUPTURE';
+    recommandation: 'VALIDATION' | 'CONFIRMATION' | 'RENOUVELLEMENT' | 'TITULARISATION' | 'RUPTURE';
     signatureResponsable: string;
+    motifRupture?: string;
     formulaireComplet?: FormulaireEvaluationData;
   }) => {
     const today = new Date().toISOString().split('T')[0];
+    const nowDateTime = `${today} ${new Date().toLocaleTimeString('fr-FR')}`;
     const avgScore = Number(((data.competencesTechniques + data.integrationEquipe + data.autonomieRigueur + data.atteinteObjectifs) / 4).toFixed(1));
 
+    const targetPeriode = periodesList.find(p => p.id === data.periodeId);
+    if (!targetPeriode) return;
+
+    const salarie = salariesList.find(s => s.id === targetPeriode.salarieId);
+
+    const isRupture = data.recommandation === 'RUPTURE';
+
+    // 1. Update target period
     setPeriodesList(prev => prev.map(p => {
       if (p.id === data.periodeId) {
         return {
           ...p,
-          statut: 'COMPLETEE',
+          statut: isRupture ? 'RUPTURE' : 'COMPLETEE',
+          dateValidationEvaluateur: nowDateTime, // EPIC 4: Date validation auto
           noteGlobale: avgScore,
           decisionFinale: data.recommandation,
-          joursRetard: undefined
+          motifDecision: isRupture ? (data.motifRupture || 'Rupture durant la période d\'essai') : undefined,
+          joursRetard: undefined,
+          etapeValide: true,
+          etapeEV: true,
+          etapeEvaluation: true,
+          etapeSH: true
         };
       }
       return p;
     }));
 
+    // 2. EPIC 6: Rupture logic vs EPIC 5: Validation logic
+    if (isRupture) {
+      // Bloquer tous les emails et passer le salarié en RUPTURE
+      setSalariesList(prev => prev.map(s => {
+        if (s.id === targetPeriode.salarieId) {
+          return {
+            ...s,
+            statutEssai: 'RUPTURE',
+            bloqueEmails: true,
+            actif: false,
+            PeriodeActuel: 'TERMINE'
+          };
+        }
+        return s;
+      }));
+
+      showToast(`Évaluation enregistrée : RUPTURE de la période d'essai pour ${targetPeriode.salarieNom}. Emails bloqués.`);
+    } else {
+      // EPIC 5: Cascade - Validation Période 1 (3 mois) -> Création automatique Période 2 (6 mois)
+      const isPeriod1 = targetPeriode.typePeriode === 'TROIS_MOIS' || targetPeriode.numeroPeriode === 1;
+
+      if (isPeriod1 && salarie) {
+        const date6M = addMonthsToDate(salarie.dateEmbauche, 6);
+        const newPeriode6MId = Math.max(...periodesList.map(p => p.id)) + 1;
+
+        const periode6M: PeriodeEvaluation = {
+          id: newPeriode6MId,
+          salarieId: salarie.id,
+          salarieNom: `${salarie.firstName} ${salarie.lastName}`,
+          salarieEmail: salarie.email,
+          salariePoste: salarie.poste,
+          responsableId: salarie.responsableId,
+          responsableNom: targetPeriode.responsableNom,
+          responsableEmail: targetPeriode.responsableEmail,
+          directionName: targetPeriode.directionName,
+          typePeriode: 'SIX_MOIS',
+          numeroPeriode: 2,
+          dateEcheance: date6M,
+          dateDeclenchementEmail: date6M,
+          heureDeclenchement: '09:00:00',
+          statut: 'EN_COURS',
+          decisionFinale: 'EN_ATTENTE',
+          tokenAccesSalarie: `sec-eval-${salarie.id}-6m-${Date.now().toString(36)}`,
+          emailsEnvoyes: {}
+        };
+
+        setPeriodesList(prev => [periode6M, ...prev]);
+
+        setSalariesList(prev => prev.map(s => {
+          if (s.id === salarie.id) {
+            return {
+              ...s,
+              PeriodeActuel: 'SIX_MOIS'
+            };
+          }
+          return s;
+        }));
+
+        showToast(`Période 1 (3M) validée. Période 2 (6M) générée automatiquement pour le ${date6M}.`);
+      } else {
+        showToast(`Fiche d'évaluation de la Période 2 (6M) enregistrée.`);
+      }
+    }
+
+    // Add evaluation detail record
     const newEvalDetail: EvaluationDetail = {
       id: Date.now(),
       periodeId: data.periodeId,
@@ -578,30 +806,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setEvaluations(prev => [newEvalDetail, ...prev.filter(e => e.periodeId !== data.periodeId)]);
 
-    const targetPeriode = periodesList.find(p => p.id === data.periodeId);
+    // Notification → ADMIN_RH : un responsable a soumis un formulaire d'évaluation
+    const periodeLabel = targetPeriode.typePeriode === 'TROIS_MOIS' ? 'Bilan 3 Mois' : 'Bilan 6 Mois';
+    const recommandationLabel = {
+      VALIDATION: 'Validation ✓',
+      CONFIRMATION: 'Confirmation ✓',
+      RENOUVELLEMENT: 'Renouvellement',
+      TITULARISATION: 'Titularisation ✓',
+      RUPTURE: '⚠ Rupture de période'
+    }[data.recommandation] ?? data.recommandation;
 
-    const newNotif: NotificationItem = {
-      id: Date.now(),
-      titre: `Évaluation complétée pour ${targetPeriode?.salarieNom || 'le salarié'}`,
-      message: `Recommandation : ${data.recommandation} (Score : ${avgScore}/5). Fiche officielle enregistrée.`,
+    const evalNotif: NotificationItem = {
+      id: Date.now() + 1,
+      titre: `Évaluation complétée — ${targetPeriode.salarieNom}`,
+      message: `${targetPeriode.responsableNom} a soumis la fiche d'évaluation (${periodeLabel}) pour ${targetPeriode.salarieNom}. Décision : ${recommandationLabel}. Note globale : ${avgScore}/5.`,
       type: 'EVALUATION',
-      priorite: 'MOYENNE',
+      priorite: isRupture ? 'HAUTE' : 'MOYENNE',
       dateCreation: today,
       heureCreation: new Date().toLocaleTimeString('fr-FR'),
       estLue: false,
       cibleRole: 'ADMIN_RH',
-      lienEcran: 'periodes',
-      targetId: data.periodeId
+      lienEcran: 'detail-salarie',
+      targetId: targetPeriode.salarieId
     };
-    setNotifications(prev => [newNotif, ...prev]);
 
-    showToast(`Fiche d'évaluation officielle enregistrée avec succès.`);
+    setNotifications(prev => [evalNotif, ...prev]);
+
     navigateTo('periodes');
   };
 
   const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: string) => {
     if (currentRole !== 'ADMIN_RH') {
-      showToast("Seule la Direction RH possède l'autorisation de valider définitivement la période d'essai.");
+      showToast("Seule la Direction RH peut valider la période d'essai.");
       return;
     }
     const today = new Date().toISOString().split('T')[0];
@@ -621,92 +857,149 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return p;
     }));
 
-    setSalariesList(prev => prev.map(s => {
-      if (s.id === targetPeriode.salarieId) {
-        let newStatut = s.statutEssai;
-        let newJalon = s.jalonActuel;
-        if (targetPeriode.typePeriode === 'CINQ_MOIS' || decision === 'CONFIRMATION') {
-          if (decision === 'CONFIRMATION') {
-            newStatut = 'CONFIRMEE';
-            newJalon = 'TERMINE';
-          } else if (decision === 'RENOUVELLEMENT') {
-            newStatut = 'RENOUVELEE';
-          } else if (decision === 'RUPTURE') {
-            newStatut = 'RUPTURE';
-            newJalon = 'TERMINE';
-          }
-        } else if (targetPeriode.typePeriode === 'DEUX_MOIS') {
-          newJalon = 'CINQ_MOIS';
-        }
-        return {
-          ...s,
-          statutEssai: newStatut,
-          jalonActuel: newJalon
-        };
-      }
-      return s;
-    }));
-
-    const confirmEmail: HistoriqueEmail = {
-      id: Date.now(),
-      salarieId: targetPeriode.salarieId,
-      salarieNom: targetPeriode.salarieNom,
-      destinataire: targetPeriode.salarieEmail,
-      destinataireNom: targetPeriode.salarieNom,
-      roleDestinataire: 'SALARIE',
-      objet: `[GROUPE PREMIUM] Notification officielle : Décision ${decision}`,
-      typeEmail: 'CONFIRMATION_RH',
-      dateEnvoi: today,
-      heureEnvoi: new Date().toLocaleTimeString('fr-FR'),
-      statut: 'DELIVRE',
-      batchCron: false,
-      contenuCorps: `Bonjour ${targetPeriode.salarieNom},\n\nLa Direction des Ressources Humaines de Groupe Premium vous notifie la validation officielle de votre bilan (${targetPeriode.typePeriode === 'DEUX_MOIS' ? '2 Mois' : '5 Mois'}).\n\nDécision : ${decision}\nMotif : ${motif}\n\nFélicitations pour votre engagement au sein de Groupe Premium.`
-    };
-    setEmails(prev => [confirmEmail, ...prev]);
-
-    showToast(`Décision RH (${decision}) validée et notifiée.`);
+    showToast(`Décision RH (${decision}) validée pour ${targetPeriode.salarieNom}.`);
   };
 
+  // EPIC 1: Automated email check (3 emails at J-21, J-14, J-7)
   const triggerCronBatch0900 = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
     let emailsGenerated = 0;
     let retardsDetected = 0;
 
-    const newlyOverduePeriodes = periodesList.filter(p => {
-      return (p.statut === 'EN_ATTENTE' || p.statut === 'PLANIFIEE') && p.dateEcheance < today;
-    });
+    const newEmails: HistoriqueEmail[] = [];
 
-    retardsDetected = newlyOverduePeriodes.length;
-
-    if (newlyOverduePeriodes.length > 0) {
-      setPeriodesList(prev => prev.map(p => {
-        if (newlyOverduePeriodes.some(overdue => overdue.id === p.id)) {
-          const diffDays = Math.floor((new Date(today).getTime() - new Date(p.dateEcheance).getTime()) / (1000 * 3600 * 24));
-          return {
-            ...p,
-            statut: 'EN_RETARD',
-            joursRetard: Math.max(diffDays, 3)
-          };
-        }
+    setPeriodesList(prev => prev.map(p => {
+      const salarie = salariesList.find(s => s.id === p.salarieId);
+      // Skip completed, validated, or rupture periods, or blocked employees
+      if (p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH' || p.statut === 'RUPTURE' || salarie?.bloqueEmails) {
         return p;
-      }));
+      }
+
+      const echeance = new Date(p.dateEcheance);
+      const diffTime = echeance.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+
+      let newStatut = p.statut;
+      const tracker = { ...(p.emailsEnvoyes || {}) };
+
+      const periodeLabel = p.typePeriode === 'TROIS_MOIS' ? '3 mois' : '6 mois';
+
+      // 1. Email 3 (J-7) -> EN_RETARD
+      if (diffDays <= 7 && !tracker.email3) {
+        newStatut = 'EN_RETARD';
+        retardsDetected++;
+        tracker.email3 = todayStr;
+        emailsGenerated++;
+
+        const tmpl = parametres.templatesEmail.find(t => t.id === 'email3');
+        const body = (tmpl?.contenu || '')
+          .replace('{salarie}', p.salarieNom)
+          .replace('{echeance}', p.dateEcheance)
+          .replace('{responsable}', p.responsableNom)
+          .replace('{periode}', periodeLabel);
+
+        newEmails.push({
+          id: Date.now() + emailsGenerated,
+          salarieId: p.salarieId,
+          salarieNom: p.salarieNom,
+          destinataire: p.responsableEmail,
+          destinataireNom: p.responsableNom,
+          roleDestinataire: 'RESPONSABLE',
+          objet: (tmpl?.objet || '').replace('{salarie}', p.salarieNom).replace('{periode}', periodeLabel),
+          typeEmail: 'EMAIL_3_EN_RETARD',
+          dateEnvoi: todayStr,
+          heureEnvoi: '09:00:00',
+          statut: 'DELIVRE',
+          batchCron: true,
+          contenuCorps: body
+        });
+      }
+      // 2. Email 2 (J-14) -> EN_RELANCE
+      else if (diffDays <= 14 && diffDays > 7 && !tracker.email2) {
+        newStatut = 'EN_RELANCE';
+        tracker.email2 = todayStr;
+        emailsGenerated++;
+
+        const tmpl = parametres.templatesEmail.find(t => t.id === 'email2');
+        const body = (tmpl?.contenu || '')
+          .replace('{salarie}', p.salarieNom)
+          .replace('{echeance}', p.dateEcheance)
+          .replace('{responsable}', p.responsableNom)
+          .replace('{periode}', periodeLabel);
+
+        newEmails.push({
+          id: Date.now() + emailsGenerated,
+          salarieId: p.salarieId,
+          salarieNom: p.salarieNom,
+          destinataire: p.responsableEmail,
+          destinataireNom: p.responsableNom,
+          roleDestinataire: 'RESPONSABLE',
+          objet: (tmpl?.objet || '').replace('{salarie}', p.salarieNom).replace('{periode}', periodeLabel),
+          typeEmail: 'EMAIL_2_EN_RELANCE',
+          dateEnvoi: todayStr,
+          heureEnvoi: '09:00:00',
+          statut: 'DELIVRE',
+          batchCron: true,
+          contenuCorps: body
+        });
+      }
+      // 3. Email 1 (J-21) -> EN_COURS
+      else if (diffDays <= 21 && diffDays > 14 && !tracker.email1) {
+        newStatut = 'EN_COURS';
+        tracker.email1 = todayStr;
+        emailsGenerated++;
+
+        const tmpl = parametres.templatesEmail.find(t => t.id === 'email1');
+        const body = (tmpl?.contenu || '')
+          .replace('{salarie}', p.salarieNom)
+          .replace('{echeance}', p.dateEcheance)
+          .replace('{responsable}', p.responsableNom)
+          .replace('{periode}', periodeLabel);
+
+        newEmails.push({
+          id: Date.now() + emailsGenerated,
+          salarieId: p.salarieId,
+          salarieNom: p.salarieNom,
+          destinataire: p.responsableEmail,
+          destinataireNom: p.responsableNom,
+          roleDestinataire: 'RESPONSABLE',
+          objet: (tmpl?.objet || '').replace('{salarie}', p.salarieNom).replace('{periode}', periodeLabel),
+          typeEmail: 'EMAIL_1_EN_COURS',
+          dateEnvoi: todayStr,
+          heureEnvoi: '09:00:00',
+          statut: 'DELIVRE',
+          batchCron: true,
+          contenuCorps: body
+        });
+      }
+
+      return {
+        ...p,
+        statut: newStatut,
+        emailsEnvoyes: tracker,
+        joursRetard: newStatut === 'EN_RETARD' ? Math.abs(diffDays) : undefined
+      };
+    }));
+
+    if (newEmails.length > 0) {
+      setEmails(prev => [...newEmails, ...prev]);
     }
 
     const newCronNotif: NotificationItem = {
       id: Date.now(),
-      titre: "Exécution batch 09:00:00 (Moteur Automatique)",
-      message: `Cycle automatique complété : ${retardsDetected} évaluation(s) analysée(s), emails d'échéance et relances transmis.`,
+      titre: "Cycle d'envoi automatique (3 Emails J-21 / J-14 / J-7)",
+      message: `${emailsGenerated} email(s) envoyé(s) automatiquement aux responsables.`,
       type: 'CRON_SYSTEME',
       priorite: 'BASSE',
-      dateCreation: today,
+      dateCreation: todayStr,
       heureCreation: '09:00:00',
       estLue: false,
-      cibleRole: 'ADMIN_RH',
-      lienEcran: 'retards'
+      cibleRole: 'ADMIN_RH'
     };
 
     setNotifications(prev => [newCronNotif, ...prev]);
-    showToast(`Batch automatique 09:00 exécuté avec succès.`);
+    showToast(`Batch emails automatique exécuté (${emailsGenerated} envoyés).`);
 
     return { emailsCount: emailsGenerated, retardsCount: retardsDetected };
   };
@@ -739,9 +1032,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         openEmailModal,
         closeEmailModal,
         isEmailModalOpen,
+        isAddSalarieModalOpen,
+        openAddSalarieModal,
+        closeAddSalarieModal,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
         toggleSidebar,
+        parametres,
+        updateParametres,
         directions,
         responsables,
         users,
@@ -781,3 +1079,4 @@ export function useApp() {
   }
   return context;
 }
+

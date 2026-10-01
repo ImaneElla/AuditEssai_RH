@@ -30,7 +30,8 @@ export interface Responsable {
 }
 
 export type StatutEssai = 'EN_COURS' | 'RENOUVELEE' | 'CONFIRMEE' | 'RUPTURE';
-export type JalonType = 'DEUX_MOIS' | 'CINQ_MOIS' | 'TERMINE';
+export type PeriodeType = 'TROIS_MOIS' | 'SIX_MOIS' | 'DEUX_MOIS' | 'CINQ_MOIS' | 'TERMINE';
+export type TypePeriode = 'TROIS_MOIS' | 'SIX_MOIS' | 'DEUX_MOIS' | 'CINQ_MOIS';
 
 export interface Salarie {
   id: number;
@@ -44,26 +45,37 @@ export interface Salarie {
   poste: string;
   dateIntegration?: string; // YYYY-MM-DD
   dateEmbauche: string; // YYYY-MM-DD
-  dureeInitialeMois: number; // e.g. 4 mois pour cadre (renouvelable)
+  dureeInitialeMois: number; // e.g. 3 ou 6 mois
   dateFinPrevisionnelle: string;
   directionId: number;
   directionName: string;
   responsableId: number;
   responsableNom: string;
   statutEssai: StatutEssai;
-  jalonActuel: JalonType;
+  PeriodeActuel: PeriodeType;
   photoUrl?: string;
+  bloqueEmails?: boolean;
+  actif?: boolean;
 }
 
 export type StatutPeriode = 
+  | 'EN_COURS'
+  | 'EN_RELANCE'
+  | 'EN_RETARD'
+  | 'COMPLETEE'
+  | 'VALIDEE_RH'
+  | 'RUPTURE'
   | 'PLANIFIEE' 
   | 'EMAIL_ENVOYE' 
-  | 'EN_ATTENTE' 
-  | 'EN_RETARD' 
-  | 'COMPLETEE' 
-  | 'VALIDEE_RH';
+  | 'EN_ATTENTE';
 
-export type DecisionPeriode = 'CONFIRMATION' | 'RENOUVELLEMENT' | 'RUPTURE' | 'EN_ATTENTE';
+export type DecisionPeriode = 'VALIDATION' | 'CONFIRMATION' | 'RENOUVELLEMENT' | 'TITULARISATION' | 'RUPTURE' | 'EN_ATTENTE';
+
+export interface EmailsEnvoyesTracker {
+  email1?: string; // date of send
+  email2?: string;
+  email3?: string;
+}
 
 export interface PeriodeEvaluation {
   id: number;
@@ -75,24 +87,29 @@ export interface PeriodeEvaluation {
   responsableNom: string;
   responsableEmail: string;
   directionName: string;
-  typePeriode: 'DEUX_MOIS' | 'CINQ_MOIS';
-  dateEcheance: string; // Date cible
-  dateDeclenchementEmail: string; // Envoyé à 09:00
+  typePeriode: TypePeriode;
+  numeroPeriode?: number; // 1 (3 mois) ou 2 (6 mois)
+  dateEcheance: string; // Date cible (fin de période)
+  dateDeclenchementEmail: string;
   heureDeclenchement: string;
   dateDernierRappel?: string;
+  dateValidationEvaluateur?: string; // Date & heure de validation par le responsable
   statut: StatutPeriode;
-  joursRetard?: number; // Calculé si statut == EN_RETARD (> 2 jours)
-  noteGlobale?: number; // Sur 5
+  joursRetard?: number;
+  noteGlobale?: number;
   decisionFinale?: DecisionPeriode;
   motifDecision?: string;
   dateValidationRH?: string;
-  tokenAccesSalarie?: string; // Jeton d'accès sécurisé pour le salarié sans compte
+  tokenAccesSalarie?: string;
+  emailsEnvoyes?: EmailsEnvoyesTracker;
+  etapeValide?: boolean;
+  etapeEV?: boolean;
+  etapeEvaluation?: boolean;
+  etapeSH?: boolean;
 }
 
-// Structure complète calquée fidèlement sur la Fiche Officielle Groupe Premium (PS07PR02IN02FO02 - v3.0)
 export interface FormulaireEvaluationData {
   periodeId: number;
-  // 1. Renseignements du collaborateur
   nom: string;
   prenom: string;
   dateIntegration: string;
@@ -102,36 +119,29 @@ export interface FormulaireEvaluationData {
   superieurHierarchique: string;
   nomEvaluateur: string;
 
-  // Evaluation des objectifs
   objectifsStatut: 'DEPASSE' | 'ATTEINT' | 'PARTIELLEMENT_ATTEINT';
   commentairesObjectifs: string;
 
-  // Grille d'évaluation (1 à 5 + commentaire par critère)
-  // 1. Compétences professionnelles & techniques (10 critères)
   scoresCompetences: { [critereId: string]: number };
   commentairesCompetences: { [critereId: string]: string };
 
-  // 2. Aptitudes personnelles & comportement professionnel (11 critères)
   scoresAptitudes: { [critereId: string]: number };
   commentairesAptitudes: { [critereId: string]: string };
 
-  // 3. Bonnes pratiques QSE (3 critères)
   scoresQSE: { [critereId: string]: number };
   commentairesQSE: { [critereId: string]: string };
 
-  // Appréciations générales des performances
   appreciationGenerale: string;
   pointsForts: string;
   axesAmelioration: string;
 
-  // Recommandation
   recommandationCommentaire: string;
-  decisionValidation: 'VALIDATION' | 'RUPTURE';
+  decisionValidation: 'VALIDATION' | 'RUPTURE' | 'RENOUVELLEMENT' | 'TITULARISATION';
+  motifRupture?: string;
   dateEffetDecision: string;
 
-  // Signatures
   dateRealisationBilan: string;
-  validationDCH: boolean;
+  validationDCH?: boolean;
   signatureEvalue: string;
   signatureEvaluateur: string;
   signatureSuperieur: string;
@@ -140,15 +150,15 @@ export interface FormulaireEvaluationData {
 export interface EvaluationDetail {
   id: number;
   periodeId: number;
-  competencesTechniques: number; // 1 à 5
-  integrationEquipe: number; // 1 à 5
-  autonomieRigueur: number; // 1 à 5
-  atteinteObjectifs: number; // 1 à 5
+  competencesTechniques: number;
+  integrationEquipe: number;
+  autonomieRigueur: number;
+  atteinteObjectifs: number;
   pointsForts: string;
   axesAmelioration: string;
   avisResponsable: string;
   avisSalarie?: string;
-  recommandation: 'CONFIRMATION' | 'RENOUVELLEMENT' | 'RUPTURE';
+  recommandation: 'VALIDATION' | 'CONFIRMATION' | 'RENOUVELLEMENT' | 'TITULARISATION' | 'RUPTURE';
   dateEvaluation: string;
   signatureResponsable: string;
   signatureSalarie?: string;
@@ -156,6 +166,9 @@ export interface EvaluationDetail {
 }
 
 export type TypeEmail = 
+  | 'EMAIL_1_EN_COURS'
+  | 'EMAIL_2_EN_RELANCE'
+  | 'EMAIL_3_EN_RETARD'
   | 'CONVOCATION_2M' 
   | 'CONVOCATION_5M' 
   | 'RAPPEL_RETARD_J2' 
@@ -171,12 +184,12 @@ export interface HistoriqueEmail {
   roleDestinataire: 'RESPONSABLE' | 'SALARIE' | 'RH';
   objet: string;
   typeEmail: TypeEmail;
-  dateEnvoi: string; // YYYY-MM-DD
-  heureEnvoi: string; // HH:mm:ss
+  dateEnvoi: string;
+  heureEnvoi: string;
   statut: 'DELIVRE' | 'OUVERT';
-  batchCron: boolean; // True si envoyé par le déclencheur auto de 09:00
+  batchCron: boolean;
   contenuCorps: string;
-  lienSecurise?: string; // Lien avec token pour le salarié
+  lienSecurise?: string;
 }
 
 export interface NotificationItem {
@@ -192,3 +205,35 @@ export interface NotificationItem {
   lienEcran?: string;
   targetId?: number;
 }
+
+// Paramètres Settings
+export interface TemplateEmailSetting {
+  id: 'email1' | 'email2' | 'email3';
+  nom: string;
+  delai: string;
+  objet: string;
+  contenu: string;
+}
+
+export interface CompteSetting {
+  nomExpediteur: string;
+  emailExpediteur: string;
+}
+
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export interface ProfilSetting {
+  nom: string;
+  prenom: string;
+  email: string;
+  direction: string;
+  photoUrl?: string;
+}
+
+export interface Parametres {
+  templatesEmail: TemplateEmailSetting[];
+  compte: CompteSetting;
+  theme: ThemeMode;
+  profil: ProfilSetting;
+}
+

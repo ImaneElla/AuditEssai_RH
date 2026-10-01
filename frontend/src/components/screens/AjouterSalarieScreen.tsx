@@ -61,8 +61,8 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
   }
 };
 
-  const calculated2M = addMonthsFormatted(dateEmbauche, 2);
-  const calculated5M = addMonthsFormatted(dateEmbauche, 5);
+  const calculated3M = addMonthsFormatted(dateEmbauche, 3);
+  const calculated6M = addMonthsFormatted(dateEmbauche, 6);
   const calculatedFin = addMonthsFormatted(dateEmbauche, dureeInitialeMois);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,7 +94,7 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
             Créer un Salarié & Automatiser le Suivi d&apos;Essai
           </h2>
           <p className="text-xs text-muted-foreground">
-            L&apos;enregistrement calcule automatiquement les jalons d&apos;évaluation à 2 mois et 5 mois et programme les envois à 09:00.
+            L&apos;enregistrement calcule automatiquement la Période 1 (3 mois) et programme les envois à 09:00.
           </p>
         </div>
         <Button
@@ -155,7 +155,7 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
                 <input
                   type="email"
                   required
-                  placeholder="prenom.nom@premuim.africa"
+                  placeholder="prenom.nom@groupe-premium.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none font-mono text-foreground"
@@ -283,31 +283,30 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                 <Zap className="w-4 h-4" strokeWidth={1.75} />
-                <span>Calculateur Automatique de Jalons Groupe Premium</span>
+                <span>Calculateur Automatique de Périodes Groupe Premium</span>
               </div>
-            
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
               <div className="p-3 rounded-xl bg-card border border-border shadow-2xs">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                  <span>Jalon 1</span>
-                  <Badge variant="appleBlue" className="text-[10px]">2 Mois</Badge>
+                  <span>Période 1</span>
+                  <Badge variant="appleBlue" className="text-[10px]">3 Mois</Badge>
                 </div>
-                <p className="font-bold text-foreground text-sm font-mono">{calculated2M || '—'}</p>
+                <p className="font-bold text-foreground text-sm font-mono">{calculated3M || '—'}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Mail auto envoyé à <strong className="text-foreground">09:00:00</strong>
+                  Mail auto envoyé à <strong className="text-foreground">09:00:00</strong> (J-21)
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-card border border-border shadow-2xs">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                  <span>Jalon 2 (Critique)</span>
-                  <Badge variant="applePurple" className="text-[10px]">5 Mois</Badge>
+                  <span>Période 2 (si validée)</span>
+                  <Badge variant="applePurple" className="text-[10px]">6 Mois</Badge>
                 </div>
-                <p className="font-bold text-foreground text-sm font-mono">{calculated5M || '—'}</p>
+                <p className="font-bold text-foreground text-sm font-mono">{calculated6M || '—'}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Bilan final avant confirmation
+                  Générée automatiquement sur validation P1
                 </p>
               </div>
 
@@ -326,7 +325,7 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
             <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-1.5 border-t border-border/60">
               <CheckCircle2 className="w-3.5 h-3.5 text-apple-green" strokeWidth={2} />
               <span>
-                Détection automatique des retards : déclenchement d&apos;alerte si formulaire non retourné à <strong className="text-foreground">J+2</strong>.
+                Suivi automatique de relance : 3 emails envoyés à J-21 (EN_COURS), J-14 (EN_RELANCE) et J-7 (EN_RETARD).
               </span>
             </div>
           </div>

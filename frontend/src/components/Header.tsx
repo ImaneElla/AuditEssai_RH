@@ -70,7 +70,7 @@ export default function Header() {
 
       case "periodes":
         return isRH
-          ? "Suivi des Periode d'Évaluation (2 Mois & 5 Mois)"
+          ? "Suivi des Périodes d'Évaluation (3 Mois & 6 Mois)"
           : "Évaluations à Réaliser — Mon Équipe";
 
       case "formulaire-evaluation":
@@ -99,6 +99,9 @@ export default function Header() {
 
       case "moteur":
         return "Moteur d'Automatisation & Règles Système";
+
+      case "aide":
+        return "Aide & Support RH";
 
       default:
         return "Groupe Premium - Essai Manager";

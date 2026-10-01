@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   X,
   TriangleAlert,
+  LayoutList,
+  Eye,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,8 +31,8 @@ const inputBase =
 const inputWithIcon =
   "w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none transition-all text-foreground";
 
-const jalonLabel = (j: string) =>
-  j === "DEUX_MOIS" ? "Bilan 3 mois" : j === "CINQ_MOIS" ? "Bilan 6 mois" : "Clôturé";
+const PeriodeLabel = (j: string) =>
+  j === "TROIS_MOIS" || j === "DEUX_MOIS" ? "Bilan 3 mois" : j === "SIX_MOIS" || j === "CINQ_MOIS" ? "Bilan 6 mois" : "Clôturé";
 
 const statutLabel = (s: string) =>
   s === "EN_COURS"
@@ -68,6 +70,9 @@ export default function SalariesListScreen() {
     addSalarie,
     navigateTo,
     currentRole,
+    isAddSalarieModalOpen,
+    openAddSalarieModal,
+    closeAddSalarieModal,
   } = useApp();
 
   const divisions = directions;
@@ -75,7 +80,7 @@ export default function SalariesListScreen() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDivision, setSelectedDivision] = useState<string>("ALL");
   const [selectedStatut, setSelectedStatut] = useState<string>("ALL");
-  const [selectedJalon, setSelectedJalon] = useState<string>("ALL");
+  const [selectedPeriode, setSelectedPeriode] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   const buildEmptyForm = () => ({
@@ -89,16 +94,11 @@ export default function SalariesListScreen() {
     dateEmbauche: new Date().toISOString().slice(0, 10),
   });
 
-  const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(buildEmptyForm);
 
-  const openAddModal = () => {
+  const handleOpenAddModal = () => {
     setForm(buildEmptyForm());
-    setShowAddModal(true);
-  };
-
-  const closeAddModal = () => {
-    setShowAddModal(false);
+    openAddSalarieModal();
   };
 
   const handleNameChange = (firstName: string, lastName: string) => {
@@ -144,7 +144,7 @@ export default function SalariesListScreen() {
       responsableId: form.responsableId,
     });
 
-    closeAddModal();
+    closeAddSalarieModal();
   };
 
   const filteredSalaries = useMemo(() => {
@@ -163,12 +163,15 @@ export default function SalariesListScreen() {
       const matchesStatut =
         selectedStatut === "ALL" || s.statutEssai === selectedStatut;
 
-      const matchesJalon =
-        selectedJalon === "ALL" || s.jalonActuel === selectedJalon;
+      const matchesPeriode =
+        selectedPeriode === "ALL" ||
+        s.PeriodeActuel === selectedPeriode ||
+        (selectedPeriode === "TROIS_MOIS" && s.PeriodeActuel === "DEUX_MOIS") ||
+        (selectedPeriode === "SIX_MOIS" && s.PeriodeActuel === "CINQ_MOIS");
 
-      return matchesSearch && matchesDivision && matchesStatut && matchesJalon;
+      return matchesSearch && matchesDivision && matchesStatut && matchesPeriode;
     });
-  }, [salaries, searchTerm, selectedDivision, selectedStatut, selectedJalon]);
+  }, [salaries, searchTerm, selectedDivision, selectedStatut, selectedPeriode]);
 
   const isRH = currentRole === "ADMIN_RH";
 
@@ -208,7 +211,7 @@ export default function SalariesListScreen() {
 
         {isRH && (
           <Button
-            onClick={openAddModal}
+            onClick={handleOpenAddModal}
             size="default"
             className="btn-gradient flex items-center gap-2 shrink-0"
           >
@@ -265,17 +268,18 @@ export default function SalariesListScreen() {
             </select>
 
             <select
-              value={selectedJalon}
-              onChange={(e) => setSelectedJalon(e.target.value)}
+              value={selectedPeriode}
+              onChange={(e) => setSelectedPeriode(e.target.value)}
               className="text-xs bg-secondary/50 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer"
             >
-              <option value="ALL">Tous les Periode</option>
-              <option value="DEUX_MOIS">Bilan 3 Mois</option>
-              <option value="CINQ_MOIS">Bilan 6 Mois</option>
+              <option value="ALL">Toutes les Périodes</option>
+              <option value="TROIS_MOIS">Bilan 3 Mois</option>
+              <option value="SIX_MOIS">Bilan 6 Mois</option>
               <option value="TERMINE">Période Clôturée</option>
             </select>
           </div>
         </div>
+        
       </Card>
 
       <div className="flex items-center justify-between">
@@ -293,13 +297,12 @@ export default function SalariesListScreen() {
             onClick={() => setViewMode("list")}
             className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
               viewMode === "list"
-                ? "bg-card shadow-sm border border-border text-foreground"
+                ? "bg-card shadow-sm border border-border text-red-600"
                 : "text-muted-foreground"
             }`}
             title="Vue en liste"
           >
-            <List className="w-4 h-4" strokeWidth={1.75} />
-            <span className="hidden sm:inline text-xs">Liste</span>
+            <LayoutList className="w-4 h-4" strokeWidth={1.75} />
           </Button>
 
           <Button
@@ -309,13 +312,12 @@ export default function SalariesListScreen() {
             onClick={() => setViewMode("grid")}
             className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
               viewMode === "grid"
-                ? "bg-card shadow-sm border border-border text-foreground"
+                ? "bg-card shadow-sm border border-border text-red-600"
                 : "text-muted-foreground"
             }`}
             title="Vue en cartes"
           >
             <Grid2X2 className="w-4 h-4" strokeWidth={1.75} />
-            <span className="hidden sm:inline text-xs">Cartes</span>
           </Button>
         </div>
       </div>
@@ -352,7 +354,7 @@ export default function SalariesListScreen() {
                 <th className="py-3.5 px-3 whitespace-nowrap truncate">Division</th>
                 <th className="py-3.5 px-3 whitespace-nowrap truncate">Responsable</th>
                 <th className="py-3.5 px-3 whitespace-nowrap truncate">Embauche &amp; Échéance</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Jalon Actif</th>
+                <th className="py-3.5 px-3 whitespace-nowrap truncate">Periode Actif</th>
                 <th className="py-3.5 px-3 whitespace-nowrap truncate">Statut Essai</th>
                 <th className="py-3.5 px-3 whitespace-nowrap truncate text-right">Actions</th>
               </tr>
@@ -456,7 +458,7 @@ export default function SalariesListScreen() {
                           className="w-3 h-3 text-muted-foreground"
                           strokeWidth={1.75}
                         />
-                        {jalonLabel(salarie.jalonActuel)}
+                        {PeriodeLabel(salarie.PeriodeActuel)}
                       </Badge>
                     </td>
 
@@ -472,30 +474,24 @@ export default function SalariesListScreen() {
                      
                     </td>
 
-                    <td className="py-3 px-3 align-middle whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigateTo("detail-salarie", {
-                              salarieId: salarie.id,
-                            })
-                          }
-                          className="cursor-pointer"
-                        >
-                          Détail
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          onClick={() => openEvaluation(salarie.id)}
-                          className="btn-gradient cursor-pointer"
-                        >
-                          Évaluer
-                        </Button>
-                      </div>
-                    </td>
+                  <td className="py-3 px-3 align-middle whitespace-nowrap text-right">
+  <div className="flex items-center justify-end gap-1.5">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() =>
+        navigateTo("detail-salarie", {
+          salarieId: salarie.id,
+        })
+      }
+      className="cursor-pointer flex items-center gap-1.5"
+    >
+      <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
+      Détail
+    </Button>
+  </div>
+</td>
+                    
                   </tr>
                 );
               })}
@@ -592,7 +588,7 @@ export default function SalariesListScreen() {
 
                     <div className="rounded-xl bg-secondary/50 border border-border/50 p-3">
                       <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">
-                        Jalon actif
+                        Periode actif
                       </p>
 
                       <Badge
@@ -600,7 +596,7 @@ export default function SalariesListScreen() {
                         className="inline-flex items-center gap-1 text-[10px] font-normal"
                       >
                         <Clock className="w-3 h-3" strokeWidth={1.75} />
-                        {jalonLabel(salarie.jalonActuel)}
+                        {PeriodeLabel(salarie.PeriodeActuel)}
                       </Badge>
                     </div>
                   </div>
@@ -675,9 +671,9 @@ export default function SalariesListScreen() {
         </div>
       )}
 
-      {showAddModal && (
+      {isAddSalarieModalOpen && (
         <div
-          onClick={closeAddModal}
+          onClick={closeAddSalarieModal}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/20 backdrop-blur-xs animate-in fade-in duration-200"
         >
           <div
@@ -690,14 +686,14 @@ export default function SalariesListScreen() {
                   Créer un Salarié &amp; Automatiser le Suivi d&apos;Essai
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  L&apos;enregistrement calcule automatiquement les Periode d&apos;évaluation à 3 mois et 6 mois et programme les envois à 09:00.
+                  L&apos;enregistrement calcule automatiquement les Périodes d&apos;évaluation à 3 mois et 6 mois et programme les envois à 09:00.
                 </p>
               </div>
 
               <button
                 type="button"
                 aria-label="Fermer"
-                onClick={closeAddModal}
+                onClick={closeAddSalarieModal}
                 className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -922,7 +918,7 @@ export default function SalariesListScreen() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={closeAddModal}
+                  onClick={closeAddSalarieModal}
                   className="cursor-pointer"
                 >
                   Annuler

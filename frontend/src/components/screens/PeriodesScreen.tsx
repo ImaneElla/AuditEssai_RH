@@ -4,13 +4,12 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   AlertTriangle,
-  ShieldCheck,
-  FileText,
   Clock,
   CheckCircle2,
   CalendarDays,
   ChevronRight,
-  Search
+  Search,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +17,11 @@ import { Card } from '@/components/ui/card';
 
 type KpiFilter = 'ALL' | 'ATTENTE' | 'RETARD' | 'FINALISEES';
 
-const ATTENTE_STATUTS = ['EN_ATTENTE', 'EMAIL_ENVOYE'];
+// Statuts "à faire" : en cours / relance / en attente
+const ATTENTE_STATUTS = ['EN_ATTENTE', 'EMAIL_ENVOYE', 'EN_COURS', 'EN_RELANCE'];
+// Statuts "retard" : relance + retard
+const RETARD_STATUTS = ['EN_RETARD', 'EN_RELANCE'];
+// Formulaire rempli par le responsable
 const FINALISEES_STATUTS = ['COMPLETEE', 'VALIDEE_RH'];
 
 /* ---------- KPI card (design d'origine) ---------- */
@@ -35,14 +38,30 @@ interface KpiCardProps {
   children?: React.ReactNode;
 }
 
-function KpiCard({ icon: Icon, title, value, unit, chip, detail, danger = false, active, onClick, children }: KpiCardProps) {
+function KpiCard({
+  icon: Icon,
+  title,
+  value,
+  unit,
+  chip,
+  detail,
+  danger = false,
+  active,
+  onClick,
+  children,
+}: KpiCardProps) {
   return (
     <Card
       role="button"
       tabIndex={0}
       aria-pressed={active}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={`group relative overflow-hidden bg-white border rounded-2xl p-5 shadow-sm cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 ${
         active ? 'border-red-400 ring-1 ring-red-400/40' : 'border-zinc-200'
       }`}
@@ -52,25 +71,37 @@ function KpiCard({ icon: Icon, title, value, unit, chip, detail, danger = false,
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
-              <Icon className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
+              <Icon
+                className="w-5 h-5 text-red-600 group-hover:text-white transition-colors"
+                strokeWidth={2}
+              />
             </div>
-            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">{title}</span>
+            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
+              {title}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
             <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
           </div>
         </div>
+
         <div className="flex items-end gap-3">
-          <span className={`text-4xl font-black tracking-tight leading-none ${danger ? 'text-red-600' : 'text-zinc-950'}`}>
+          <span
+            className={`text-4xl font-black tracking-tight leading-none ${
+              danger ? 'text-red-600' : 'text-zinc-950'
+            }`}
+          >
             {value}
           </span>
           <span className="text-[11px] text-zinc-500 font-medium mb-1">{unit}</span>
         </div>
+
         <div className="mt-5">
           <Badge className="bg-red-50 text-red-600 border border-red-100 text-[10px] font-semibold px-2.5 py-1">
             {chip}
           </Badge>
         </div>
+
         {detail && <p className="mt-2 text-[11px] text-zinc-500 truncate">{detail}</p>}
         {children}
       </div>
@@ -80,7 +111,7 @@ function KpiCard({ icon: Icon, title, value, unit, chip, detail, danger = false,
 }
 
 export default function PeriodesScreen() {
-  const { periodes = [], navigateTo, validerDecisionRH, currentRole } = useApp();
+  const { periodes = [], navigateTo, currentRole } = useApp();
 
   const isRH = currentRole === 'ADMIN_RH';
   const [search, setSearch] = useState<string>('');
@@ -93,13 +124,13 @@ export default function PeriodesScreen() {
 
   const query = normalize(search.trim());
 
-  const filtered = periodes.filter(p => {
+  const filtered = periodes.filter((p) => {
     const matchType = filterType === 'ALL' || p.typePeriode === filterType;
     const matchStatut = filterStatut === 'ALL' || p.statut === filterStatut;
     const matchKpi =
       kpiFilter === 'ALL' ||
       (kpiFilter === 'ATTENTE' && ATTENTE_STATUTS.includes(p.statut)) ||
-      (kpiFilter === 'RETARD' && p.statut === 'EN_RETARD') ||
+      (kpiFilter === 'RETARD' && RETARD_STATUTS.includes(p.statut)) ||
       (kpiFilter === 'FINALISEES' && FINALISEES_STATUTS.includes(p.statut));
     const matchSearch =
       query === '' ||
@@ -120,80 +151,81 @@ export default function PeriodesScreen() {
   };
 
   const totalPeriodes = periodes.length;
-  const count2M = periodes.filter(p => p.typePeriode === 'DEUX_MOIS').length;
-  const count5M = totalPeriodes - count2M;
+  const count3M = periodes.filter(
+    (p) => p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS'
+  ).length;
+  const count6M = totalPeriodes - count3M;
 
-  const nbSalaries = new Set(periodes.map(p => p.salarieId)).size;
-  const enAttente = periodes.filter(p => ATTENTE_STATUTS.includes(p.statut));
-  const enRetard = periodes.filter(p => p.statut === 'EN_RETARD');
-  const finalisees = periodes.filter(p => FINALISEES_STATUTS.includes(p.statut));
-  const aValiderRH = periodes.filter(p => p.statut === 'COMPLETEE').length;
+  const nbSalaries = new Set(periodes.map((p) => p.salarieId)).size;
+  const enAttente = periodes.filter((p) => ATTENTE_STATUTS.includes(p.statut));
+  const enRetard = periodes.filter((p) => RETARD_STATUTS.includes(p.statut));
+  const finalisees = periodes.filter((p) => FINALISEES_STATUTS.includes(p.statut));
+  const aValiderRH = periodes.filter((p) => p.statut === 'COMPLETEE').length;
 
   const enAttenteCount = enAttente.length;
   const enRetardCount = enRetard.length;
   const completeesCount = finalisees.length;
-  const progress = totalPeriodes > 0 ? Math.round((completeesCount / totalPeriodes) * 100) : 0;
+  const progress =
+    totalPeriodes > 0 ? Math.round((completeesCount / totalPeriodes) * 100) : 0;
 
-  // Prochaine échéance parmi les évaluations en attente
   const prochaine = [...enAttente]
-    .filter(p => daysFromToday(p.dateEcheance) !== null)
-    .sort((a, b) => (daysFromToday(a.dateEcheance) as number) - (daysFromToday(b.dateEcheance) as number))[0];
+    .filter((p) => daysFromToday(p.dateEcheance) !== null)
+    .sort(
+      (a, b) =>
+        (daysFromToday(a.dateEcheance) as number) -
+        (daysFromToday(b.dateEcheance) as number)
+    )[0];
   const prochaineJours = prochaine ? daysFromToday(prochaine.dateEcheance) : null;
 
-  // Retards : responsables concernés + plus ancien retard
-  const responsablesEnRetard = Array.from(new Set(enRetard.map(p => p.responsableNom).filter(Boolean)));
-  const plusAncienRetard = enRetard
-    .map(p => daysFromToday(p.dateEcheance))
-    .filter((d): d is number => d !== null)
-    .reduce((min, d) => Math.min(min, d), 0);
+  const responsablesEnRetard = Array.from(
+    new Set(enRetard.map((p) => p.responsableNom).filter(Boolean))
+  );
 
   const toggleKpi = (k: KpiFilter) => {
     setFilterStatut('ALL');
-    setKpiFilter(prev => (prev === k ? 'ALL' : k));
+    setKpiFilter((prev) => (prev === k ? 'ALL' : k));
   };
 
   const statutLabel = (s: string) => {
     switch (s) {
-      case 'PLANIFIEE': return 'Planifiée';
-      case 'EMAIL_ENVOYE': return 'Mail envoyé';
-      case 'EN_ATTENTE': return 'En attente';
+      case 'EN_COURS': return 'En cours';
+      case 'EN_RELANCE': return 'En relance';
       case 'EN_RETARD': return 'En retard';
       case 'COMPLETEE': return 'Complétée';
       case 'VALIDEE_RH': return 'Validée RH';
+      case 'RUPTURE': return 'Rupture';
+      case 'PLANIFIEE': return 'Planifiée';
+      case 'EMAIL_ENVOYE': return 'Mail envoyé';
       default: return s;
     }
   };
 
   const getStatutBadgeVariant = (s: string): 'destructive' | 'appleGreen' | 'secondary' => {
     switch (s) {
-      case 'PLANIFIEE': return 'secondary';
-      case 'EMAIL_ENVOYE': return 'secondary';
-      case 'EN_ATTENTE': return 'secondary';
       case 'EN_RETARD': return 'destructive';
+      case 'RUPTURE': return 'destructive';
       case 'COMPLETEE': return 'appleGreen';
       case 'VALIDEE_RH': return 'appleGreen';
       default: return 'secondary';
     }
   };
 
-  const formatDate = (d?: string | null) => {
-    if (!d) return '—';
-    const date = new Date(d);
-    return isNaN(date.getTime()) ? d : date.toLocaleDateString('fr-FR');
-  };
+  const formatDate = (d?: string | null) => (d ? d : '—');
 
   return (
     <div className="space-y-6 font-sans">
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground tracking-tight">
-            {isRH ? 'Periode d’Évaluation (Supervision Globale)' : 'Évaluations à Réaliser — Mon Équipe'}
+            {isRH
+              ? 'Périodes d’Évaluation (Supervision Globale)'
+              : 'Évaluations à Réaliser — Mon Équipe'}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {isRH
-              ? `${filtered.length} jalon${filtered.length > 1 ? 's' : ''} — Bilans intermédiaires (2 mois) et décisionnels (5 mois)`
-              : `Équipe Gestion de Patrimoine • ${filtered.length} évaluation${filtered.length > 1 ? 's associées' : ' associée'}`
-            }
+              ? `${filtered.length} période${filtered.length > 1 ? 's' : ''} — Bilans Période 1 (3 mois) et Période 2 (6 mois)`
+              : `${filtered.length} évaluation${filtered.length > 1 ? 's associées' : ' associée'}`}
           </p>
         </div>
       </div>
@@ -202,25 +234,30 @@ export default function PeriodesScreen() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={CalendarDays}
-          title="Total Période"
+          title="Total Périodes"
           value={totalPeriodes}
           unit="évaluations"
-          chip={`${count2M} à 2 mois · ${count5M} à 5 mois`}
+          chip={`Tous les statuts sont inclus`}
           detail={`${nbSalaries} salarié${nbSalaries > 1 ? 's' : ''} concerné${nbSalaries > 1 ? 's' : ''}`}
           active={kpiFilter === 'ALL'}
-          onClick={() => { setFilterStatut('ALL'); setKpiFilter('ALL'); }}
+          onClick={() => {
+            setFilterStatut('ALL');
+            setKpiFilter('ALL');
+          }}
         />
 
         <KpiCard
           icon={Clock}
-          title="En Attente"
+          title="En Cours & Relance"
           value={enAttenteCount}
           unit="formulaires"
           chip={
             prochaine && prochaineJours !== null
-              ? prochaineJours < 0 ? `Dépassée de ${Math.abs(prochaineJours)} j`
-                : prochaineJours === 0 ? "Échéance aujourd'hui"
-                : `Échéance dans ${prochaineJours} j`
+              ? prochaineJours < 0
+                ? `Dépassée de ${Math.abs(prochaineJours)} j`
+                : prochaineJours === 0
+                  ? "Échéance aujourd'hui"
+                  : `Échéance dans ${prochaineJours} j`
               : 'Aucun en cours'
           }
           detail={prochaine?.salarieNom}
@@ -230,10 +267,10 @@ export default function PeriodesScreen() {
 
         <KpiCard
           icon={AlertTriangle}
-          title="En Retard"
+          title="En Relance / Retard"
           value={enRetardCount}
           unit={enRetardCount > 1 ? 'évaluations' : 'évaluation'}
-          chip={enRetardCount > 0 ? `Jusqu'à ${Math.abs(plusAncienRetard)} j de retard` : 'Aucun retard'}
+          chip={enRetardCount > 0 ? 'Attention requise' : 'À jour'}
           detail={responsablesEnRetard.join(', ')}
           danger={enRetardCount > 0}
           active={kpiFilter === 'RETARD'}
@@ -245,25 +282,34 @@ export default function PeriodesScreen() {
           title="Finalisées"
           value={completeesCount}
           unit={`sur ${totalPeriodes}`}
-          chip={isRH && aValiderRH > 0 ? `${aValiderRH} à valider RH` : `${progress} % terminées`}
+          chip={
+            isRH && aValiderRH > 0 ? `${aValiderRH} à valider RH` : `${progress} % terminées`
+          }
           active={kpiFilter === 'FINALISEES'}
           onClick={() => toggleKpi('FINALISEES')}
         >
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-            <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </KpiCard>
       </div>
 
+      {/* FILTERS */}
       <Card className="p-3.5 border-border/80 shadow-2xs">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" strokeWidth={2} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none"
+              strokeWidth={2}
+            />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un salarié, poste, responsable ou direction..."
+              placeholder="Rechercher un salarié, poste, responsable..."
               className="w-full text-xs bg-secondary/40 border border-border rounded-xl pl-9 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none font-medium"
             />
           </div>
@@ -274,160 +320,175 @@ export default function PeriodesScreen() {
             className="text-xs bg-secondary/40 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none cursor-pointer font-medium"
           >
             <option value="ALL">Toutes les périodes</option>
-            <option value="DEUX_MOIS">Bilan 2 Mois (Intermédiaire)</option>
-            <option value="CINQ_MOIS">Bilan 5 Mois (Décision Finale)</option>
+            <option value="TROIS_MOIS">Période 1 (3 Mois)</option>
+            <option value="SIX_MOIS">Période 2 (6 Mois)</option>
           </select>
 
           <select
             value={filterStatut}
-            onChange={(e) => { setFilterStatut(e.target.value); setKpiFilter('ALL'); }}
+            onChange={(e) => {
+              setFilterStatut(e.target.value);
+              setKpiFilter('ALL');
+            }}
             className="text-xs bg-secondary/40 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none cursor-pointer font-medium"
           >
             <option value="ALL">Tous les statuts</option>
-            <option value="PLANIFIEE">Planifiée</option>
-            <option value="EMAIL_ENVOYE">Mail 09h envoyé</option>
-            <option value="EN_ATTENTE">Formulaire en cours</option>
-            <option value="EN_RETARD">En retard</option>
+            <option value="EN_COURS">En cours (J-21)</option>
+            <option value="EN_RELANCE">En relance (J-14)</option>
+            <option value="EN_RETARD">En retard (J-7)</option>
             <option value="COMPLETEE">Complétée</option>
             <option value="VALIDEE_RH">Validée RH</option>
+            <option value="RUPTURE">Rupture</option>
           </select>
         </div>
       </Card>
 
+      {/* TABLE */}
       <Card className="overflow-hidden border-border/80 shadow-2xs">
         <table className="w-full table-fixed text-left text-xs border-collapse">
           <colgroup>
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '7%' }} />
             <col style={{ width: '10%' }} />
-            <col style={{ width: '20%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '16%' }} />
           </colgroup>
           <thead className="bg-secondary/60 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
             <tr>
-              <th className="py-3.5 px-3 whitespace-nowrap truncate">Type</th>
+              <th className="py-3.5 px-6 whitespace-nowrap truncate">Période</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Salarié</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Responsable</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Direction</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Échéance</th>
-              <th className="py-3.5 px-3 whitespace-nowrap truncate" title="Décision de responsable">Décision de responsable</th>
-              <th className="py-3.5 px-3 whitespace-nowrap truncate" title="Date de validation">Validation</th>
+              <th className="py-3.5 px-3 whitespace-nowrap truncate">Date Validation</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Statut</th>
-              <th className="py-3.5 px-3 whitespace-nowrap truncate text-right"></th>
+              <th className="py-3.5 px-3 whitespace-nowrap truncate text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60 text-foreground bg-card">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-muted-foreground font-medium">
-                  Aucun jalon ne correspond aux filtres sélectionnés.
+                <td
+                  colSpan={8}
+                  className="text-center py-12 text-muted-foreground font-medium"
+                >
+                  Aucune période ne correspond aux filtres sélectionnés.
                 </td>
               </tr>
             ) : (
-              filtered.map((p) => (
-                <tr key={p.id} className={`hover:bg-red-50/30 transition-colors group ${p.statut === 'EN_RETARD' ? 'bg-red-50/20' : ''}`}>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] font-semibold whitespace-nowrap"
-                    >
-                      {p.typePeriode === 'DEUX_MOIS' ? '2 Mois' : '5 Mois'}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
-                    <span
-                      onClick={() => navigateTo('detail-salarie', { salarieId: p.salarieId })}
-                      title={p.salarieNom}
-                      className="font-semibold text-foreground hover:text-red-600 cursor-pointer block truncate tracking-tight transition-colors"
-                    >
-                      {p.salarieNom}
-                    </span>
-                    <span title={p.salariePoste} className="block truncate text-[10px] text-muted-foreground">{p.salariePoste}</span>
-                  </td>
-                  <td title={p.responsableNom} className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-medium text-foreground">{p.responsableNom}</td>
-                  <td title={p.directionName} className="py-3.5 px-3 align-middle whitespace-nowrap truncate text-muted-foreground">{p.directionName}</td>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px]">{p.dateEcheance}</td>
-                  <td className="py-3.5 px-14 align-middle whitespace-nowrap overflow-hidden">
-                    {p.decisionFinale && p.decisionFinale !== 'EN_ATTENTE' ? (
-                      <Badge
-                        variant={
-                          p.decisionFinale === 'CONFIRMATION' ? 'appleGreen' :
-                          p.decisionFinale === 'RENOUVELLEMENT' ? 'appleOrange' :
-                          'destructive'
-                        }
-                        className="text-[10px] font-mono whitespace-nowrap"
-                      >
-                        {p.decisionFinale}
-                      </Badge>
-                    ) : (
+              filtered.map((p) => {
+                // Le formulaire est rempli par le responsable (complétée, validée RH ou rupture)
+                const formulaireRempli =
+                  FINALISEES_STATUTS.includes(p.statut) || p.statut === 'RUPTURE';
+
+                return (
+                  <tr
+                    key={p.id}
+                    className={`hover:bg-red-50/30 transition-colors group ${
+                      p.statut === 'EN_RETARD' ? 'bg-red-50/20' : ''
+                    }`}
+                  >
+                    <td className="py-3.5 px-6 align-middle whitespace-nowrap overflow-hidden">
                       <Badge
                         variant="secondary"
-                        className="text-[10px] font-mono whitespace-nowrap"
+                        className="text-[10px] font-semibold whitespace-nowrap"
                       >
-                        En cours
+                        {p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS'
+                          ? '3 mois'
+                          : '6 mois'}
                       </Badge>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px]">
-                    {formatDate(p.dateValidationRH)}
-                  </td>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
-                    <Badge variant={getStatutBadgeVariant(p.statut)} className="inline-flex items-center gap-1 text-[10px] font-mono whitespace-nowrap">
-                      {statutLabel(p.statut)}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-3 align-middle whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {isRH ? (
-                        <>
+                    </td>
+
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
+                      <span
+                        onClick={() =>
+                          navigateTo('detail-salarie', { salarieId: p.salarieId })
+                        }
+                        title={p.salarieNom}
+                        className="font-semibold text-foreground hover:text-red-600 cursor-pointer block truncate tracking-tight transition-colors"
+                      >
+                        {p.salarieNom}
+                      </span>
+                      <span
+                        title={p.salariePoste}
+                        className="block truncate text-[10px] text-muted-foreground"
+                      >
+                        {p.salariePoste}
+                      </span>
+                    </td>
+
+                    <td
+                      title={p.responsableNom}
+                      className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-medium text-foreground"
+                    >
+                      {p.responsableNom}
+                    </td>
+
+                    <td
+                      title={p.directionName}
+                      className="py-3.5 px-3 align-middle whitespace-nowrap truncate text-muted-foreground"
+                    >
+                      {p.directionName}
+                    </td>
+
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px]">
+                      {p.dateEcheance}
+                    </td>
+
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px] text-zinc-700">
+                      {formatDate(p.dateValidationEvaluateur)}
+                    </td>
+
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">
+                      <Badge
+                        variant={getStatutBadgeVariant(p.statut)}
+                        className={`inline-flex items-center gap-1 text-[10px] font-mono whitespace-nowrap ${
+                          p.statut === 'EN_RELANCE'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : p.statut === 'RUPTURE'
+                              ? 'bg-rose-950 text-white border-rose-950'
+                              : ''
+                        }`}
+                      >
+                        {statutLabel(p.statut)}
+                      </Badge>
+                    </td>
+
+                    <td className="py-3.5 px-3 align-middle whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigateTo('detail-salarie', { salarieId: p.salarieId })
+                          }
+                          className="text-xs h-7 cursor-pointer flex items-center gap-1"
+                          title="Voir la fiche individuelle et le parcours"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                          <span>Détails</span>
+                        </Button>
+
+                        {(!isRH || formulaireRempli) && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
+                            onClick={() =>
+                              navigateTo('formulaire-evaluation', { periodeId: p.id })
+                            }
                             className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
                           >
-                            Consulter
+                            {formulaireRempli ? 'Consulter' : 'Formulaire'}
                           </Button>
-                          {p.statut === 'COMPLETEE' && (
-                            <Button
-                              size="sm"
-                              onClick={() => validerDecisionRH(p.id, p.decisionFinale || 'CONFIRMATION', p.motifDecision || 'Décision validée.')}
-                              className="text-xs h-7 cursor-pointer flex items-center gap-1 shadow-2xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                            >
-                              <ShieldCheck className="w-3 h-3" strokeWidth={1.75} /> Valider RH
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {(p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH') ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                              className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
-                            >
-                              Consulter
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                              className="text-xs h-7 cursor-pointer flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white shadow-2xs"
-                            >
-                              <FileText className="w-3 h-3" strokeWidth={1.75} /> Remplir l&apos;évaluation
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -25,7 +25,7 @@ interface CriterionItem {
 type ScoreMap = { [id: string]: number };
 type CommentMap = { [id: string]: string };
 type ObjectifsStatut = 'DEPASSE' | 'ATTEINT' | 'PARTIELLEMENT_ATTEINT' | null;
-type Decision = 'VALIDATION' | 'RUPTURE' | null;
+type Decision = 'VALIDATION' | 'RUPTURE' | 'RENOUVELLEMENT' | 'TITULARISATION' | null;
 
 const competencesProItems: CriterionItem[] = [
   { id: 'cp1', label: 'Compréhension du poste, des missions et du périmètre' },
@@ -327,10 +327,15 @@ export default function FormulaireEvaluationScreen() {
       avisSalarie: commentairesObjectifs,
       recommandation:
         decisionValidation === 'VALIDATION'
-          ? 'CONFIRMATION'
+          ? 'VALIDATION'
           : decisionValidation === 'RUPTURE'
             ? 'RUPTURE'
-            : '',
+            : decisionValidation === 'RENOUVELLEMENT'
+              ? 'RENOUVELLEMENT'
+              : decisionValidation === 'TITULARISATION'
+                ? 'TITULARISATION'
+                : 'VALIDATION',
+      motifRupture: decisionValidation === 'RUPTURE' ? recommandationCommentaire : undefined,
       signatureResponsable: signatureEvaluateur,
       formulaireComplet: {
         periodeId: periode.id,
@@ -342,7 +347,7 @@ export default function FormulaireEvaluationScreen() {
         directionDivision,
         superieurHierarchique,
         nomEvaluateur,
-        objectifsStatut,
+        objectifsStatut: objectifsStatut || 'ATTEINT',
         commentairesObjectifs,
         scoresCompetences,
         commentairesCompetences,
@@ -354,7 +359,7 @@ export default function FormulaireEvaluationScreen() {
         pointsForts,
         axesAmelioration,
         recommandationCommentaire,
-        decisionValidation,
+        decisionValidation: decisionValidation || 'VALIDATION',
         dateEffetDecision,
         dateRealisationBilan,
         signatureEvalue,
@@ -400,7 +405,9 @@ export default function FormulaireEvaluationScreen() {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Échéance :</span>
             <span className="font-semibold text-foreground">
-              {periode?.typePeriode === 'DEUX_MOIS' ? 'Bilan 2 Mois' : 'Bilan 5 Mois'}
+              {periode?.typePeriode === 'TROIS_MOIS' || periode?.numeroPeriode === 1
+                ? 'Bilan 3 Mois (Intermédiaire)'
+                : 'Bilan 6 Mois (Décision finale)'}
             </span>
           </div>
           <div className="flex justify-between">
@@ -489,7 +496,7 @@ export default function FormulaireEvaluationScreen() {
           >
             {periodes.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.salarieNom} — {p.typePeriode === 'DEUX_MOIS' ? '2 Mois' : '5 Mois'}
+                {p.salarieNom} — {p.typePeriode === 'TROIS_MOIS' || p.numeroPeriode === 1 ? '3 Mois' : '6 Mois'}
               </option>
             ))}
           </select>
@@ -819,7 +826,7 @@ export default function FormulaireEvaluationScreen() {
           </div>
 
           {/* ============================================================= */}
-          {/* SECTION 4: Recommandation (single copy)                       */}
+          {/* SECTION 4: Recommandation                                     */}
           {/* ============================================================= */}
           <div className="space-y-0 border border-black">
             <div className="bg-[#A30000] text-white font-bold text-center py-1.5 uppercase text-xs tracking-wider">
@@ -836,38 +843,78 @@ export default function FormulaireEvaluationScreen() {
               />
             </div>
 
-            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs items-center">
-              <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
-                <input
-                  type="radio"
-                  name="decision"
-                  checked={decisionValidation === 'VALIDATION'}
-                  onChange={() => setDecisionValidation('VALIDATION')}
-                  className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
-                />
-                <span>Validation période d’essai</span>
-              </label>
+            <div className="p-4 space-y-4 text-xs">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
+                  <input
+                    type="radio"
+                    name="decision"
+                    checked={decisionValidation === 'VALIDATION'}
+                    onChange={() => setDecisionValidation('VALIDATION')}
+                    className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                  />
+                  <span>Validation période d’essai</span>
+                </label>
 
-              <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
-                <input
-                  type="radio"
-                  name="decision"
-                  checked={decisionValidation === 'RUPTURE'}
-                  onChange={() => setDecisionValidation('RUPTURE')}
-                  className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
-                />
-                <span>Rupture période d’essai</span>
-              </label>
+                <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
+                  <input
+                    type="radio"
+                    name="decision"
+                    checked={decisionValidation === 'RENOUVELLEMENT'}
+                    onChange={() => setDecisionValidation('RENOUVELLEMENT')}
+                    className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                  />
+                  <span>Renouvellement</span>
+                </label>
 
-              <div className="flex items-center gap-2">
-                <span className="font-bold shrink-0">Date d’effet :</span>
-                <input
-                  type="date"
-                  value={dateEffetDecision}
-                  readOnly
-                  tabIndex={-1}
-                  className="border-b border-black px-1 py-0.5 text-xs outline-none font-mono bg-zinc-50 cursor-not-allowed pointer-events-none"
-                />
+                <label className="flex items-center gap-2 cursor-pointer font-bold select-none">
+                  <input
+                    type="radio"
+                    name="decision"
+                    checked={decisionValidation === 'TITULARISATION'}
+                    onChange={() => setDecisionValidation('TITULARISATION')}
+                    className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                  />
+                  <span>Titularisation</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer font-bold select-none text-red-700">
+                  <input
+                    type="radio"
+                    name="decision"
+                    checked={decisionValidation === 'RUPTURE'}
+                    onChange={() => setDecisionValidation('RUPTURE')}
+                    className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                  />
+                  <span>Rupture période d’essai</span>
+                </label>
+              </div>
+
+              {decisionValidation === 'RUPTURE' && (
+                <div className="pt-2 border-t border-zinc-200 space-y-1">
+                  <label className="font-bold text-red-700 block">
+                    Motif de la rupture (facultatif) :
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={recommandationCommentaire}
+                    onChange={(e) => setRecommandationCommentaire(e.target.value)}
+                    placeholder="Précisez ici le motif ou les raisons de la rupture..."
+                    className="w-full p-2 text-xs border border-red-300 bg-red-50/30 rounded focus:border-red-600 outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold shrink-0">Date d’effet :</span>
+                  <input
+                    type="date"
+                    value={dateEffetDecision}
+                    onChange={(e) => setDateEffetDecision(e.target.value)}
+                    className="border-b border-black px-1 py-0.5 text-xs outline-none font-mono"
+                  />
+                </div>
               </div>
             </div>
           </div>
