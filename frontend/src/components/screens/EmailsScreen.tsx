@@ -282,8 +282,8 @@ export default function EmailsScreen() {
               className="w-full md:w-auto text-xs bg-secondary/40 border border-border rounded-xl px-3 py-2 text-foreground focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none cursor-pointer font-medium"
             >
               <option value="ALL">Toutes les sources</option>
-              <option value="CRON">⚡ Cron 09:00 Automatique</option>
-              <option value="MANUAL">👤 Manuel / Relance</option>
+              <option value="CRON">Cron 09:00 Automatique</option>
+              <option value="MANUAL">Manuel / Relance</option>
             </select>
           </div>
         </div>

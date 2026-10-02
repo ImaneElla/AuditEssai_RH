@@ -277,50 +277,44 @@ export default function SalariesListScreen() {
               <option value="SIX_MOIS">Bilan 6 Mois</option>
               <option value="TERMINE">Période Clôturée</option>
             </select>
+
+            <div className="h-6 w-px bg-border hidden lg:block mx-0.5" />
+
+            {/* Sélecteur de vue (Liste / Grille) */}
+            <div className="flex items-center p-0.5 bg-secondary/80 border border-border rounded-xl gap-0.5 shrink-0">
+              <Button
+                type="button"
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className={`h-7 w-7 p-0 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-card shadow-2xs border border-border text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Vue en liste"
+              >
+                <LayoutList className="w-3.5 h-3.5" strokeWidth={1.75} />
+              </Button>
+
+              <Button
+                type="button"
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className={`h-7 w-7 p-0 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-card shadow-2xs border border-border text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Vue en cartes"
+              >
+                <Grid2X2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+              </Button>
+            </div>
           </div>
         </div>
-        
       </Card>
-
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            Affichage des collaborateurs
-          </p>
-        </div>
-
-        <div className="flex items-center p-1 bg-secondary/60 border border-border rounded-xl gap-1">
-          <Button
-            type="button"
-            variant={viewMode === "list" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
-              viewMode === "list"
-                ? "bg-card shadow-sm border border-border text-red-600"
-                : "text-muted-foreground"
-            }`}
-            title="Vue en liste"
-          >
-            <LayoutList className="w-4 h-4" strokeWidth={1.75} />
-          </Button>
-
-          <Button
-            type="button"
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
-              viewMode === "grid"
-                ? "bg-card shadow-sm border border-border text-red-600"
-                : "text-muted-foreground"
-            }`}
-            title="Vue en cartes"
-          >
-            <Grid2X2 className="w-4 h-4" strokeWidth={1.75} />
-          </Button>
-        </div>
-      </div>
 
       {filteredSalaries.length === 0 ? (
         <Card className="py-12">
@@ -336,167 +330,141 @@ export default function SalariesListScreen() {
           </div>
         </Card>
       ) : viewMode === "list" ? (
-        <Card className="overflow-hidden">
-          <table className="w-full table-fixed text-left text-xs border-collapse">
-            <colgroup>
-              <col style={{ width: "19%" }} />
-              <col style={{ width: "17%" }} />
-              <col style={{ width: "13%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "14%" }} />
-            </colgroup>
+        <Card className="overflow-hidden border border-border/80 shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed text-left text-xs border-collapse">
+              <colgroup>
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "26%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "10%" }} />
+              </colgroup>
 
-            <thead className="bg-secondary/40 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Salarié</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Division</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Responsable</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Embauche &amp; Échéance</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Periode Actif</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate">Statut Essai</th>
-                <th className="py-3.5 px-3 whitespace-nowrap truncate text-right">Actions</th>
-              </tr>
-            </thead>
+              <thead className="bg-secondary/60 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Collaborateur</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Poste & Direction</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Responsable N+1</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Dates Clés</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap text-right">Actions</th>
+                </tr>
+              </thead>
 
-            <tbody className="divide-y divide-border/60 text-foreground">
-              {filteredSalaries.map((salarie) => {
-                const hasOverdue = periodes.some(
-                  (p) => p.salarieId === salarie.id && p.statut === "EN_RETARD"
-                );
+              <tbody className="divide-y divide-border/60 text-foreground">
+                {filteredSalaries.map((salarie) => {
+                  const hasOverdue = periodes.some(
+                    (p) => p.salarieId === salarie.id && p.statut === "EN_RETARD"
+                  );
 
-                return (
-                  <tr
-                    key={salarie.id}
-                    className={`hover:bg-secondary/40 transition-colors ${
-                      hasOverdue ? "bg-destructive/5" : ""
-                    }`}
-                  >
-                    <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-secondary border border-border text-foreground font-bold flex items-center justify-center text-xs shrink-0">
-                          {salarie.firstName[0]}
-                          {salarie.lastName[0]}
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <button
-                              type="button"
-                              title={`${salarie.firstName} ${salarie.lastName}`}
-                              onClick={() =>
-                                navigateTo("detail-salarie", {
-                                  salarieId: salarie.id,
-                                })
-                              }
-                              className="font-semibold text-foreground hover:text-primary cursor-pointer text-xs tracking-tight truncate text-left"
-                            >
-                              {salarie.firstName} {salarie.lastName}
-                            </button>
-
-                            {salarie.matricule && (
-                              <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 rounded border border-border/60 shrink-0">
-                                {salarie.matricule}
-                              </span>
-                            )}
+                  return (
+                    <tr
+                      key={salarie.id}
+                      className={`hover:bg-secondary/40 transition-colors ${
+                        hasOverdue ? "bg-destructive/5" : ""
+                      }`}
+                    >
+                      <td className="py-3.5 px-4 align-middle whitespace-nowrap overflow-hidden">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-secondary to-secondary/60 border border-border text-foreground font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                            {salarie.firstName[0]}
+                            {salarie.lastName[0]}
                           </div>
 
-                          <span
-                            title={salarie.email}
-                            className="text-[11px] text-muted-foreground block truncate"
-                          >
-                            {salarie.email}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <button
+                                type="button"
+                                title={`${salarie.firstName} ${salarie.lastName}`}
+                                onClick={() =>
+                                  navigateTo("detail-salarie", {
+                                    salarieId: salarie.id,
+                                  })
+                                }
+                                className="font-semibold text-foreground hover:text-primary cursor-pointer text-xs tracking-tight truncate text-left"
+                              >
+                                {salarie.firstName} {salarie.lastName}
+                              </button>
+
+                              {salarie.matricule && (
+                                <span className="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md border border-border/60 shrink-0">
+                                  {salarie.matricule}
+                                </span>
+                              )}
+                            </div>
+
+                            <span
+                              title={salarie.email}
+                              className="text-[11px] text-muted-foreground block truncate mt-0.5"
+                            >
+                              {salarie.email}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                 <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden max-w-[200px]">
-  {/* Icône + Poste */}
-  <div className="flex items-center gap-1.5 min-w-0">
-    <Building2
-      className="w-3 h-3 text-muted-foreground shrink-0"
-      strokeWidth={1.75}
-    />
-    <p title={salarie.poste} className="font-medium text-foreground text-xs truncate">
-      {salarie.poste}
-    </p>
-  </div>
+                      <td className="py-3.5 px-4 align-middle whitespace-nowrap overflow-hidden">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Building2
+                              className="w-3.5 h-3.5 text-muted-foreground shrink-0"
+                              strokeWidth={1.75}
+                            />
+                            <p title={salarie.poste} className="font-semibold text-foreground text-xs truncate">
+                              {salarie.poste}
+                            </p>
+                          </div>
+                          <p title={salarie.directionName} className="text-[11px] text-muted-foreground truncate pl-5 mt-0.5">
+                            {salarie.directionName}
+                          </p>
+                        </div>
+                      </td>
 
-  {/* Division en dessous */}
-  <p className="text-[11px] text-muted-foreground truncate pl-4">
-    <span title={salarie.directionName}>
-      {salarie.directionName}
-    </span>
-  </p>
-</td>
+                      <td className="py-3.5 px-4 align-middle whitespace-nowrap overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-secondary border border-border/80 flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
+                            {salarie.responsableNom ? salarie.responsableNom[0] : "R"}
+                          </div>
+                          <p title={salarie.responsableNom} className="font-medium text-foreground text-xs truncate">
+                            {salarie.responsableNom || "—"}
+                          </p>
+                        </div>
+                      </td>
 
-                    <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden">
-                      <p title={salarie.responsableNom} className="font-medium text-foreground text-xs truncate">
-                        {salarie.responsableNom}
-                      </p>
-                    </td>
+                      <td className="py-3.5 px-4 align-middle whitespace-nowrap overflow-hidden font-mono text-[11px]">
+                        <div className="space-y-0.5">
+                          <div className="truncate text-foreground">
+                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">Entrée:</span>
+                            {salarie.dateEmbauche}
+                          </div>
+                          <div className="truncate text-muted-foreground">
+                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">Terme:</span>
+                            {salarie.dateFinPrevisionnelle}
+                          </div>
+                        </div>
+                      </td>
 
-                    <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden font-mono text-[11px]">
-                      <div className="truncate">
-                        <strong className="text-foreground">Entrée :</strong>{" "}
-                        {salarie.dateEmbauche}
-                      </div>
-
-                      <div className="text-muted-foreground truncate">
-                        Terme : {salarie.dateFinPrevisionnelle}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden">
-                      <Badge
-                        variant="secondary"
-                        className="inline-flex items-center gap-1 text-[11px] font-normal whitespace-nowrap"
-                      >
-                        <Clock
-                          className="w-3 h-3 text-muted-foreground"
-                          strokeWidth={1.75}
-                        />
-                        {PeriodeLabel(salarie.PeriodeActuel)}
-                      </Badge>
-                    </td>
-
-                    <td className="py-3 px-3 align-middle whitespace-nowrap overflow-hidden">
-                      <Badge
-                        variant={statutVariant(salarie.statutEssai)}
-                        className="text-[11px] font-normal whitespace-nowrap"
-                      >
-                        {statutLabel(salarie.statutEssai)}
-                      </Badge>
-
-                     
-                     
-                    </td>
-
-                  <td className="py-3 px-3 align-middle whitespace-nowrap text-right">
-  <div className="flex items-center justify-end gap-1.5">
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() =>
-        navigateTo("detail-salarie", {
-          salarieId: salarie.id,
-        })
-      }
-      className="cursor-pointer flex items-center gap-1.5"
-    >
-      <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
-      Détail
-    </Button>
-  </div>
-</td>
-                    
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className="py-3.5 px-4 align-middle whitespace-nowrap text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            navigateTo("detail-salarie", {
+                              salarieId: salarie.id,
+                            })
+                          }
+                          className="cursor-pointer h-8 px-3 rounded-lg border-border hover:bg-secondary text-foreground text-xs font-medium inline-flex items-center gap-1.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
+                          Détail
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

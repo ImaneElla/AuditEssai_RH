@@ -85,17 +85,31 @@ const inputClass =
 // ============================================================================
 
 export default function ParametresScreen() {
-  const { parametres, updateParametres, currentRole } = useApp();
+  const { parametres, updateParametres, updateResponsable, currentRole, currentResponsable } = useApp();
   const isRH = currentRole === 'ADMIN_RH';
 
   const [templates, setTemplates] = useState<TemplateEmailSetting[]>(parametres.templatesEmail);
   const [compte, setCompte] = useState(parametres.compte);
   const [theme, setTheme] = useState<ThemeMode>(parametres.theme);
+
+  // Admin profil (parametres.profil) — only used / editable when isRH
   const [profil, setProfil] = useState(parametres.profil);
+
+  // Responsable profil — local copy of currentResponsable for editing
+  const [respProfil, setRespProfil] = useState({
+    firstName: currentResponsable?.firstName ?? '',
+    lastName:  currentResponsable?.lastName  ?? '',
+    email:     currentResponsable?.email     ?? '',
+    phone:     currentResponsable?.phone     ?? '',
+    poste:     currentResponsable?.poste     ?? '',
+    directionName: currentResponsable?.directionName ?? '',
+    directionId:   currentResponsable?.directionId   ?? 1,
+  });
+
   const [saved, setSaved] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'emails' | 'compte' | 'theme' | 'profil'>(
-    isRH ? 'emails' : 'theme'
+    isRH ? 'emails' : 'profil'
   );
 
   const handleTemplateChange = (
@@ -108,12 +122,25 @@ export default function ParametresScreen() {
 
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
-    updateParametres({
-      templatesEmail: templates,
-      compte,
-      theme,
-      profil,
-    });
+
+    if (isRH) {
+      // Admin saves its own parametres.profil — never touches responsable data
+      updateParametres({ templatesEmail: templates, compte, theme, profil });
+    } else {
+      // Responsable saves only theme + its own responsable record (NOT parametres.profil)
+      updateParametres({ theme });
+      if (currentResponsable) {
+        updateResponsable(currentResponsable.id, {
+          firstName:   respProfil.firstName,
+          lastName:    respProfil.lastName,
+          email:       respProfil.email,
+          phone:       respProfil.phone,
+          poste:       respProfil.poste,
+          directionId: respProfil.directionId,
+        });
+      }
+    }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -380,13 +407,17 @@ export default function ParametresScreen() {
             <Group>
               <div className="flex flex-col items-center gap-1 px-4 py-6 text-center">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-b from-red-400 to-zinc-600 text-[28px] font-semibold uppercase text-white shadow-sm">
-                  {profil.prenom?.[0]}
-                  {profil.nom?.[0]}
+                  {isRH
+                    ? <>{profil.prenom?.[0]}{profil.nom?.[0]}</>
+                    : <>{respProfil.firstName?.[0]}{respProfil.lastName?.[0]}</>
+                  }
                 </div>
                 <h4 className="mt-2 text-[20px] font-semibold text-foreground">
-                  {profil.prenom} {profil.nom}
+                  {isRH ? `${profil.prenom} ${profil.nom}` : `${respProfil.firstName} ${respProfil.lastName}`}
                 </h4>
-                <p className="text-[13px] text-muted-foreground">{profil.direction}</p>
+                <p className="text-[13px] text-muted-foreground">
+                  {isRH ? profil.direction : (respProfil.poste || respProfil.directionName)}
+                </p>
                 <span className="mt-1 rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-muted-foreground">
                   {isRH ? 'Compte Administrateur DRH' : 'Compte Responsable'}
                 </span>
@@ -395,43 +426,96 @@ export default function ParametresScreen() {
 
             <Group
               title="Informations personnelles"
-              footer="Informations du compte connecté."
+              footer={isRH ? "Informations du compte Admin RH." : "Informations du compte Responsable connecté."}
             >
-              <Row label="Prénom">
-                <input
-                  type="text"
-                  value={profil.prenom}
-                  onChange={(e) => setProfil({ ...profil, prenom: e.target.value })}
-                  className={inputClass}
-                />
-              </Row>
-              <Row label="Nom">
-                <input
-                  type="text"
-                  value={profil.nom}
-                  onChange={(e) => setProfil({ ...profil, nom: e.target.value })}
-                  className={inputClass}
-                />
-              </Row>
-              <Row label="Adresse email">
-                <input
-                  type="email"
-                  value={profil.email}
-                  onChange={(e) => setProfil({ ...profil, email: e.target.value })}
-                  className={inputClass}
-                />
-              </Row>
-              <Row label="Direction">
-                <input
-                  type="text"
-                  value={profil.direction}
-                  onChange={(e) => setProfil({ ...profil, direction: e.target.value })}
-                  className={inputClass}
-                />
-              </Row>
+              {isRH ? (
+                <>
+                  <Row label="Prénom">
+                    <input
+                      type="text"
+                      value={profil.prenom}
+                      onChange={(e) => setProfil({ ...profil, prenom: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Nom">
+                    <input
+                      type="text"
+                      value={profil.nom}
+                      onChange={(e) => setProfil({ ...profil, nom: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Adresse email">
+                    <input
+                      type="email"
+                      value={profil.email}
+                      onChange={(e) => setProfil({ ...profil, email: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Direction">
+                    <input
+                      type="text"
+                      value={profil.direction}
+                      onChange={(e) => setProfil({ ...profil, direction: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                </>
+              ) : (
+                <>
+                  <Row label="Prénom">
+                    <input
+                      type="text"
+                      value={respProfil.firstName}
+                      onChange={(e) => setRespProfil({ ...respProfil, firstName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Nom">
+                    <input
+                      type="text"
+                      value={respProfil.lastName}
+                      onChange={(e) => setRespProfil({ ...respProfil, lastName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Adresse email">
+                    <input
+                      type="email"
+                      value={respProfil.email}
+                      onChange={(e) => setRespProfil({ ...respProfil, email: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Téléphone">
+                    <input
+                      type="tel"
+                      value={respProfil.phone}
+                      onChange={(e) => setRespProfil({ ...respProfil, phone: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Poste">
+                    <input
+                      type="text"
+                      value={respProfil.poste}
+                      onChange={(e) => setRespProfil({ ...respProfil, poste: e.target.value })}
+                      className={inputClass}
+                    />
+                  </Row>
+                  <Row label="Direction">
+                    <span className="block text-right text-[15px] text-muted-foreground/70 select-none">
+                      {respProfil.directionName || '—'}
+                    </span>
+                  </Row>
+                </>
+              )}
             </Group>
           </div>
         )}
+
 
         {/* Bottom save */}
         <button

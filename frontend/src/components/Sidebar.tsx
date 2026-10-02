@@ -157,20 +157,6 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Footer User */}
-      <div className={`p-3 border-t border-zinc-200/60 dark:border-white/10 bg-white dark:bg-[#000000] flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#A50000] to-[#5C0000] text-white font-bold flex items-center justify-center text-xs shadow-sm shadow-[#8B0000]/20">
-            {isRH ? 'IE' : 'MD'}
-          </div>
-          {!isSidebarCollapsed && (
-            <div>
-              <p className="font-semibold text-zinc-900 dark:text-white text-sm">{isRH ? 'Imane Ellaouzi' : 'Marc Delattre'}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{isRH ? 'DRH Groupe Premium' : 'Responsable'}</p>
-            </div>
-          )}
-        </div>
-      </div>
     </aside>
   );
-}
+}

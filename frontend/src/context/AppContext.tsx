@@ -232,27 +232,93 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Charger depuis localStorage lors du premier montage
+  // Charger depuis localStorage lors du premier montage (avec mise à jour auto des données de démo)
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         const savedSalaries = localStorage.getItem('gp_salaries');
-        if (savedSalaries) setSalariesList(JSON.parse(savedSalaries));
+        if (savedSalaries) {
+          const parsed: Salarie[] = JSON.parse(savedSalaries);
+          const hasCompleteData = parsed.length >= initialSalaries.length && parsed.some(s => s.lastName === 'Ellaouzi' || s.lastName === 'Fikri');
+          if (hasCompleteData) {
+            setSalariesList(parsed);
+          } else {
+            setSalariesList(initialSalaries);
+            localStorage.setItem('gp_salaries', JSON.stringify(initialSalaries));
+          }
+        } else {
+          setSalariesList(initialSalaries);
+          localStorage.setItem('gp_salaries', JSON.stringify(initialSalaries));
+        }
 
         const savedPeriodes = localStorage.getItem('gp_periodes');
-        if (savedPeriodes) setPeriodesList(JSON.parse(savedPeriodes));
+        if (savedPeriodes) {
+          const parsed: PeriodeEvaluation[] = JSON.parse(savedPeriodes);
+          const hasCompleteData = parsed.length >= initialPeriodes.length && parsed.some(p => p.salarieNom.includes('Ellaouzi') || p.salarieNom.includes('Fikri'));
+          if (hasCompleteData) {
+            setPeriodesList(parsed);
+          } else {
+            setPeriodesList(initialPeriodes);
+            localStorage.setItem('gp_periodes', JSON.stringify(initialPeriodes));
+          }
+        } else {
+          setPeriodesList(initialPeriodes);
+          localStorage.setItem('gp_periodes', JSON.stringify(initialPeriodes));
+        }
 
         const savedEvaluations = localStorage.getItem('gp_evaluations');
-        if (savedEvaluations) setEvaluations(JSON.parse(savedEvaluations));
+        if (savedEvaluations) {
+          const parsed = JSON.parse(savedEvaluations);
+          setEvaluations(parsed.length > 0 ? parsed : initialEvaluations);
+        } else {
+          setEvaluations(initialEvaluations);
+          localStorage.setItem('gp_evaluations', JSON.stringify(initialEvaluations));
+        }
 
         const savedEmails = localStorage.getItem('gp_emails');
-        if (savedEmails) setEmails(JSON.parse(savedEmails));
+        if (savedEmails) {
+          const parsed: HistoriqueEmail[] = JSON.parse(savedEmails);
+          const hasCompleteData = parsed.length >= initialEmails.length && parsed.some(e => e.salarieNom.includes('Ellaouzi') || e.salarieNom.includes('Fikri'));
+          if (hasCompleteData) {
+            setEmails(parsed);
+          } else {
+            setEmails(initialEmails);
+            localStorage.setItem('gp_emails', JSON.stringify(initialEmails));
+          }
+        } else {
+          setEmails(initialEmails);
+          localStorage.setItem('gp_emails', JSON.stringify(initialEmails));
+        }
 
         const savedNotifications = localStorage.getItem('gp_notifications');
-        if (savedNotifications) setNotifications(JSON.parse(savedNotifications));
+        if (savedNotifications) {
+          const parsed: NotificationItem[] = JSON.parse(savedNotifications);
+          const hasCompleteData = parsed.length >= initialNotifications.length && parsed.some(n => n.message.includes('Ellaouzi') || n.message.includes('Fikri'));
+          if (hasCompleteData) {
+            setNotifications(parsed);
+          } else {
+            setNotifications(initialNotifications);
+            localStorage.setItem('gp_notifications', JSON.stringify(initialNotifications));
+          }
+        } else {
+          setNotifications(initialNotifications);
+          localStorage.setItem('gp_notifications', JSON.stringify(initialNotifications));
+        }
 
         const savedResponsables = localStorage.getItem('gp_responsables');
-        if (savedResponsables) setResponsables(JSON.parse(savedResponsables));
+        if (savedResponsables) {
+          const parsed: Responsable[] = JSON.parse(savedResponsables);
+          const hasCompleteData = parsed.length >= initialResponsables.length && parsed.some(r => r.lastName === 'El Amrani' || r.lastName === 'Benjelloun');
+          if (hasCompleteData) {
+            setResponsables(parsed);
+          } else {
+            setResponsables(initialResponsables);
+            localStorage.setItem('gp_responsables', JSON.stringify(initialResponsables));
+          }
+        } else {
+          setResponsables(initialResponsables);
+          localStorage.setItem('gp_responsables', JSON.stringify(initialResponsables));
+        }
 
         const savedParametres = localStorage.getItem('gp_parametres');
         if (savedParametres) setParametres(JSON.parse(savedParametres));
@@ -305,6 +371,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('gp_parametres', JSON.stringify(parametres));
     }
   }, [parametres, isLoaded]);
+
+  // ─────────────────────────────────────────────────────────────────
+  // DYNAMIC STATUS ENGINE: recalculate statut on every render based
+  // on dateEcheance vs today using the J-21 / J-14 / J-7 rules:
+  //   diffDays > 21       → statut stays as-is (not yet triggered)
+  //   21 >= diffDays > 14 → EN_COURS   (Email 1 window)
+  //   14 >= diffDays > 7  → EN_RELANCE (Email 2 window)
+  //    7 >= diffDays >= 0 → EN_RETARD  (Email 3 / critique)
+  //   diffDays < 0        → EN_RETARD  + joursRetard = |diffDays|
+  // ─────────────────────────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    setPeriodesList(prev => prev.map(p => {
+      // Ne pas recalculer les périodes terminées / validées / rupture
+      if (
+        p.statut === 'COMPLETEE' ||
+        p.statut === 'VALIDEE_RH' ||
+        p.statut === 'RUPTURE'
+      ) return p;
+
+      const echeance = new Date(p.dateEcheance);
+      echeance.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((echeance.getTime() - today.getTime()) / 86400000);
+
+      let newStatut = p.statut;
+      let newJoursRetard: number | undefined = p.joursRetard;
+
+      if (diffDays < 0) {
+        // Période dépassée → EN_RETARD critique
+        newStatut = 'EN_RETARD';
+        newJoursRetard = Math.abs(diffDays);
+      } else if (diffDays <= 7) {
+        // J-7 ou moins → EN_RETARD (critique, évaluation urgente)
+        newStatut = 'EN_RETARD';
+        newJoursRetard = undefined;
+      } else if (diffDays <= 14) {
+        // J-14 à J-8 → EN_RELANCE
+        newStatut = 'EN_RELANCE';
+        newJoursRetard = undefined;
+      } else if (diffDays <= 21) {
+        // J-21 à J-15 → EN_COURS
+        newStatut = 'EN_COURS';
+        newJoursRetard = undefined;
+      }
+      // diffDays > 21 → on garde le statut existant (pas encore déclenché)
+
+      if (newStatut === p.statut && newJoursRetard === p.joursRetard) return p;
+      return { ...p, statut: newStatut, joursRetard: newJoursRetard };
+    }));
+  }, [isLoaded]); // run once after load; statuts are recalculated fresh on each page load
+
 
   React.useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -809,11 +929,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Notification → ADMIN_RH : un responsable a soumis un formulaire d'évaluation
     const periodeLabel = targetPeriode.typePeriode === 'TROIS_MOIS' ? 'Bilan 3 Mois' : 'Bilan 6 Mois';
     const recommandationLabel = {
-      VALIDATION: 'Validation ✓',
-      CONFIRMATION: 'Confirmation ✓',
+      VALIDATION: 'Validation',
+      CONFIRMATION: 'Confirmation',
       RENOUVELLEMENT: 'Renouvellement',
-      TITULARISATION: 'Titularisation ✓',
-      RUPTURE: '⚠ Rupture de période'
+      TITULARISATION: 'Titularisation',
+      RUPTURE: 'Rupture de période'
     }[data.recommandation] ?? data.recommandation;
 
     const evalNotif: NotificationItem = {

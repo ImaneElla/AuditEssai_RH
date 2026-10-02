@@ -337,7 +337,6 @@ export default function PeriodesScreen() {
             <option value="EN_RELANCE">En relance (J-14)</option>
             <option value="EN_RETARD">En retard (J-7)</option>
             <option value="COMPLETEE">Complétée</option>
-            <option value="VALIDEE_RH">Validée RH</option>
             <option value="RUPTURE">Rupture</option>
           </select>
         </div>
