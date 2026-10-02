@@ -28,11 +28,10 @@ function DashboardRH() {
     emails, 
     navigateTo, 
     openEmailModal, 
-    openAddSalarieModal,
     parametres
   } = useApp();
 
-  const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('TOUS');
+  const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('PRIORITAIRE');
 
   // Logged in user greeting prenom
   const prenomCompte = parametres.profil.prenom || 'Administrateur';

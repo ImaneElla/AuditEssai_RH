@@ -15,7 +15,9 @@ import {
   ChevronRight,
   PanelLeft,
   Settings,
-  Info
+  Info,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -156,7 +158,12 @@ export default function Sidebar() {
           </>
         )}
       </div>
-
+        {/* Pied de sidebar */}
+      <div className="mt-auto border-t border-zinc-200 dark:border-white/10 py-3">
+        <p className="text-center text-[11px] font-medium tracking-wide text-zinc-500 dark:text-zinc-400">
+          {isSidebarCollapsed ? 'v1.0' : 'Version 1.0.0'}
+        </p>
+      </div>
     </aside>
   );
-}
+}

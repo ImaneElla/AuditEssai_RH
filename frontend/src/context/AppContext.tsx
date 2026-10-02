@@ -955,30 +955,118 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     navigateTo('periodes');
   };
 
-  const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: string) => {
-    if (currentRole !== 'ADMIN_RH') {
-      showToast("Seule la Direction RH peut valider la période d'essai.");
-      return;
+const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: string) => {
+  if (currentRole !== 'ADMIN_RH') {
+    showToast("Seule la Direction RH peut valider la période d'essai.");
+    return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  const nowTime = new Date().toLocaleTimeString('fr-FR');
+  const targetPeriode = periodesList.find(p => p.id === periodeId);
+  if (!targetPeriode) return;
+
+  // ───── FIN DE PÉRIODE D'ESSAI (RUPTURE) ─────
+  if (decision === 'RUPTURE') {
+    const isPeriod1 =
+      targetPeriode.typePeriode === 'TROIS_MOIS' ||
+      targetPeriode.typePeriode === 'DEUX_MOIS' ||
+      targetPeriode.numeroPeriode === 1;
+
+    // 1. La période passe en RUPTURE ; si c'est la Période 1, la période de 6 mois est bloquée
+    setPeriodesList(prev => {
+      const updated = prev.map<PeriodeEvaluation>(p =>
+        p.id === periodeId
+          ? {
+              ...p,
+              statut: 'RUPTURE',
+              decisionFinale: 'RUPTURE',
+              motifDecision: motif,
+              dateValidationRH: today,
+              joursRetard: undefined
+            }
+          : p
+      );
+
+      if (!isPeriod1) return updated;
+
+      return updated.filter(p => {
+        const is6M =
+          p.typePeriode === 'SIX_MOIS' ||
+          p.typePeriode === 'CINQ_MOIS' ||
+          p.numeroPeriode === 2;
+        const terminee = p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH';
+        // on retire la période 6 mois de ce salarié si elle n'est pas déjà terminée
+        return !(p.salarieId === targetPeriode.salarieId && is6M && !terminee);
+      });
+    });
+
+    // 2. Le salarié passe en RUPTURE : emails bloqués, dossier terminé
+    setSalariesList(prev => prev.map(s =>
+      s.id === targetPeriode.salarieId
+        ? {
+            ...s,
+            statutEssai: 'RUPTURE',
+            bloqueEmails: true,
+            actif: false,
+            PeriodeActuel: 'TERMINE'
+          }
+        : s
+    ));
+
+    // 3. Trace dans le journal des emails (envoyé au responsable)
+    const finEmail: HistoriqueEmail = {
+      id: Date.now(),
+      salarieId: targetPeriode.salarieId,
+      salarieNom: targetPeriode.salarieNom,
+      destinataire: targetPeriode.responsableEmail,
+      destinataireNom: targetPeriode.responsableNom,
+      roleDestinataire: 'RESPONSABLE',
+      objet: `[GROUPE PREMIUM] Fin de la période d'essai - ${targetPeriode.salarieNom}`,
+      typeEmail: 'CONFIRMATION_RH',
+      dateEnvoi: today,
+      heureEnvoi: nowTime,
+      statut: 'DELIVRE',
+      batchCron: false,
+      contenuCorps: `Bonjour ${targetPeriode.responsableNom},\n\nLa Direction des Ressources Humaines confirme la fin de la période d'essai de ${targetPeriode.salarieNom}.\n\nMotif : ${motif}\n\nDirection des Ressources Humaines - Groupe Premium`
+    };
+    setEmails(prev => [finEmail, ...prev]);
+
+    // 4. Notification
+    const finNotif: NotificationItem = {
+      id: Date.now() + 1,
+      titre: `Fin de période d'essai — ${targetPeriode.salarieNom}`,
+      message: `La décision RH est enregistrée. Les relances automatiques sont arrêtées${isPeriod1 ? " et la période de 6 mois est bloquée" : ''}.`,
+      type: 'EVALUATION',
+      priorite: 'HAUTE',
+      dateCreation: today,
+      heureCreation: nowTime,
+      estLue: false,
+      cibleRole: 'TOUS',
+      lienEcran: 'detail-salarie',
+      targetId: targetPeriode.salarieId
+    };
+    setNotifications(prev => [finNotif, ...prev]);
+
+    showToast(`Fin de période d'essai enregistrée pour ${targetPeriode.salarieNom}.`);
+    return;
+  }
+
+  // ───── AUTRES DÉCISIONS (comportement existant) ─────
+  setPeriodesList(prev => prev.map(p => {
+    if (p.id === periodeId) {
+      return {
+        ...p,
+        statut: 'VALIDEE_RH',
+        decisionFinale: decision,
+        motifDecision: motif,
+        dateValidationRH: today
+      };
     }
-    const today = new Date().toISOString().split('T')[0];
-    const targetPeriode = periodesList.find(p => p.id === periodeId);
-    if (!targetPeriode) return;
+    return p;
+  }));
 
-    setPeriodesList(prev => prev.map(p => {
-      if (p.id === periodeId) {
-        return {
-          ...p,
-          statut: 'VALIDEE_RH',
-          decisionFinale: decision,
-          motifDecision: motif,
-          dateValidationRH: today
-        };
-      }
-      return p;
-    }));
-
-    showToast(`Décision RH (${decision}) validée pour ${targetPeriode.salarieNom}.`);
-  };
+  showToast(`Décision RH (${decision}) validée pour ${targetPeriode.salarieNom}.`);
+};
 
   // EPIC 1: Automated email check (3 emails at J-21, J-14, J-7)
   const triggerCronBatch0900 = () => {

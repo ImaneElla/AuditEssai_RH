@@ -18,7 +18,8 @@ import {
   Pencil,
   Trash2,
   X,
-  Eye
+  Eye,
+  Lock
 } from 'lucide-react';
 import { DecisionPeriode } from '../../types';
 import { Button } from '@/components/ui/button';
@@ -43,8 +44,9 @@ export default function DetailSalarieScreen() {
 
   const [activeTab, setActiveTab] = useState<'PARCOURS' | 'EMAILS'>('PARCOURS');
   const [showDecisionModal, setShowDecisionModal] = useState<boolean>(false);
+  const [showConfirmDecisionModal, setShowConfirmDecisionModal] = useState<boolean>(false);
   const [decisionType, setDecisionType] = useState<DecisionPeriode>('CONFIRMATION');
-  const [decisionMotif, setDecisionMotif] = useState<string>('Période d\'essai concluante, objectifs atteints et pleine intégration dans l\'équipe.');
+  const [decisionMotif, setDecisionMotif] = useState<string>('');
 
   // Modales d'édition et de suppression
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
@@ -88,11 +90,39 @@ export default function DetailSalarieScreen() {
     return new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime();
   });
 
+  // ─── Fin de période d'essai ───────────────────────────────────────────
+  const isTerminee = (statut?: string) => statut === 'COMPLETEE' || statut === 'VALIDEE_RH';
+
+  // La décision "Fin de période" a été prise pour ce salarié
+  const decisionRupture =
+    salarie.statutEssai === 'RUPTURE' ||
+    salariePeriodes.some(p => p.statut === 'RUPTURE');
+
+  // Les étapes non terminées sont bloquées (affichées en gris, sans action possible)
+  const troisMoisBloque = decisionRupture && !isTerminee(periode3M?.statut);
+  const sixMoisBloque = decisionRupture && !isTerminee(periode6M?.statut);
+
+  // Ouverture du modal de décision : on repart d'un formulaire vide
+  const openDecisionModal = () => {
+    setDecisionType('CONFIRMATION'); // aucune décision sélectionnée au départ
+    setDecisionMotif('');
+    setShowConfirmDecisionModal(false);
+    setShowDecisionModal(true);
+  };
+
+  // Modèle de motif prêt à compléter
+  const motifModele = `Suite à l'évaluation de la période d'essai de ${salarie.firstName} ${salarie.lastName} et en concertation avec ${salarie.responsableNom}, il a été décidé de mettre fin à la période d'essai.\n\nMotif : `;
+
   const handleConfirmDecision = () => {
-    const activeP = salariePeriodes.find(p => p.statut !== 'VALIDEE_RH') || salariePeriodes[0];
+    // La décision cible toujours la période en cours (la plus ancienne non terminée)
+    const activeP =
+      [...salariePeriodes]
+        .sort((a, b) => (a.numeroPeriode ?? 0) - (b.numeroPeriode ?? 0))
+        .find(p => p.statut !== 'VALIDEE_RH' && p.statut !== 'RUPTURE') || salariePeriodes[0];
     if (activeP) {
       validerDecisionRH(activeP.id, decisionType, decisionMotif);
     }
+    setShowConfirmDecisionModal(false);
     setShowDecisionModal(false);
   };
 
@@ -159,10 +189,10 @@ export default function DetailSalarieScreen() {
             <span>Supprimer</span>
           </Button>
 
-          {isRH && (
+          {isRH && !decisionRupture && (
             <Button
               size="sm"
-              onClick={() => setShowDecisionModal(true)}
+              onClick={openDecisionModal}
               className="flex items-center gap-1.5 shadow-xs cursor-pointer text-xs"
             >
               <ShieldCheck className="w-4 h-4" strokeWidth={1.75} />
@@ -186,15 +216,16 @@ export default function DetailSalarieScreen() {
                 </h2>
                 <Badge
                   variant={
+                    decisionRupture ? 'destructive' :
                     salarie.statutEssai === 'CONFIRMEE' ? 'appleGreen' :
-                    salarie.statutEssai === 'RENOUVELEE' ? 'appleOrange' :
-                    salarie.statutEssai === 'RUPTURE' ? 'destructive' : 'appleBlue'
+                    salarie.statutEssai === 'RENOUVELEE' ? 'appleOrange' : 'appleBlue'
                   }
                   className="text-xs"
                 >
-                  {salarie.statutEssai === 'EN_COURS' ? 'Période d\'essai en cours' :
+                  {decisionRupture ? 'Fin de période d\'essai' :
+                   salarie.statutEssai === 'EN_COURS' ? 'Période d\'essai en cours' :
                    salarie.statutEssai === 'CONFIRMEE' ? 'Période d\'essai confirmée' :
-                   salarie.statutEssai === 'RENOUVELEE' ? 'Période renouvelée' : 'Rupture'}
+                   'Période renouvelée'}
                 </Badge>
                 <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-md font-mono border border-border/60">
                   Matricule #EMP-{salarie.id.toString().padStart(4, '0')}
@@ -239,6 +270,22 @@ export default function DetailSalarieScreen() {
         </div>
       </Card>
 
+      {/* Bandeau : fin de période d'essai */}
+      {decisionRupture && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-red-700">Fin de la période d&apos;essai</p>
+            <p className="mt-0.5 text-xs text-red-700/80">
+              La décision RH a été enregistrée pour {salarie.firstName} {salarie.lastName}.
+              Les évaluations non terminées sont bloquées et les relances automatiques sont arrêtées.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Visual Timeline of Trial Milestones */}
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -266,79 +313,105 @@ export default function DetailSalarieScreen() {
           </div>
 
           {/* Step 2: Bilan 3 Mois */}
-          <div className={`border rounded-xl p-4 ${
-            periode3M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
-            periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
-            'border-border bg-card'
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <Badge 
-                variant={
-                  periode3M?.statut === 'EN_RETARD' ? 'destructive' :
-                  periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
-                  'appleBlue'
-                }
-                className="text-[10px]"
-              >
-                {periode3M?.statut === 'EN_RETARD' ? `Retard +${periode3M.joursRetard}j` :
-                 periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'Validé' : 
-                 periode3M ? 'En cours' : 'Planifié'}
-              </Badge>
-              <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+          {troisMoisBloque ? (
+            <div className="border border-dashed border-border rounded-xl p-4 bg-secondary/40 opacity-60 grayscale select-none">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="secondary" className="text-[10px]">Bloqué</Badge>
+                <Lock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <h4 className="text-xs font-semibold text-foreground">Bilan 3 Mois </h4>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode3M?.dateEcheance || '—'}</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Fin de période d&apos;essai</p>
             </div>
-            <h4 className="text-xs font-semibold text-foreground">Bilan 3 Mois </h4>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode3M?.dateEcheance || '—'}</p>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">Email à 09:00</span>
-              {periode3M?.statut === 'EN_RETARD' && (
-                <Button
-                  size="sm"
-                  onClick={() => relancerRetard(periode3M.id)}
-                  className="text-[10px] h-6 px-2"
+          ) : (
+            <div className={`border rounded-xl p-4 ${
+              periode3M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
+              periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
+              'border-border bg-card'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <Badge 
+                  variant={
+                    periode3M?.statut === 'EN_RETARD' ? 'destructive' :
+                    periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
+                    'appleBlue'
+                  }
+                  className="text-[10px]"
                 >
-                  Relancer
-                </Button>
-              )}
+                  {periode3M?.statut === 'EN_RETARD' ? `Retard +${periode3M.joursRetard}j` :
+                   periode3M?.statut === 'COMPLETEE' || periode3M?.statut === 'VALIDEE_RH' ? 'Validé' : 
+                   periode3M ? 'En cours' : 'Planifié'}
+                </Badge>
+                <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <h4 className="text-xs font-semibold text-foreground">Bilan 3 Mois </h4>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode3M?.dateEcheance || '—'}</p>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Email à 09:00</span>
+                {periode3M?.statut === 'EN_RETARD' && !decisionRupture && (
+                  <Button
+                    size="sm"
+                    onClick={() => relancerRetard(periode3M.id)}
+                    className="text-[10px] h-6 px-2"
+                  >
+                    Relancer
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Step 3: Bilan 6 Mois */}
-          <div className={`border rounded-xl p-4 ${
-            periode6M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
-            periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
-            'border-border bg-card'
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <Badge 
-                variant={
-                  periode6M?.statut === 'EN_RETARD' ? 'destructive' :
-                  periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
-                  'applePurple'
-                }
-                className="text-[10px]"
-              >
-                {periode6M?.statut === 'EN_RETARD' ? `Retard +${periode6M.joursRetard}j` :
-                 periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'Validé' : 
-                 periode6M ? 'En cours' : 'À venir'}
-              </Badge>
-              <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+          {sixMoisBloque ? (
+            <div className="border border-dashed border-border rounded-xl p-4 bg-secondary/40 opacity-60 grayscale select-none">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="secondary" className="text-[10px]">Bloqué</Badge>
+                <Lock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <h4 className="text-xs font-semibold text-foreground">Bilan 6 Mois (Décision)</h4>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">—</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Bloqué : fin de période d&apos;essai</p>
             </div>
-            <h4 className="text-xs font-semibold text-foreground">Bilan 6 Mois (Décision)</h4>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode6M?.dateEcheance || '—'}</p>
-            <p className="text-[11px] text-muted-foreground mt-2">Avis N+1 requis</p>
-          </div>
+          ) : (
+            <div className={`border rounded-xl p-4 ${
+              periode6M?.statut === 'EN_RETARD' ? 'border-destructive/30 bg-destructive/5' :
+              periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'border-apple-green/30 bg-apple-green-subtle/40' :
+              'border-border bg-card'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <Badge 
+                  variant={
+                    periode6M?.statut === 'EN_RETARD' ? 'destructive' :
+                    periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'appleGreen' :
+                    'applePurple'
+                  }
+                  className="text-[10px]"
+                >
+                  {periode6M?.statut === 'EN_RETARD' ? `Retard +${periode6M.joursRetard}j` :
+                   periode6M?.statut === 'COMPLETEE' || periode6M?.statut === 'VALIDEE_RH' ? 'Validé' : 
+                   periode6M ? 'En cours' : 'À venir'}
+                </Badge>
+                <Clock className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <h4 className="text-xs font-semibold text-foreground">Bilan 6 Mois (Décision)</h4>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode6M?.dateEcheance || '—'}</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Avis N+1 requis</p>
+            </div>
+          )}
 
           {/* Step 4: Terme Final */}
-          <div className="border border-border rounded-xl p-4 bg-secondary/30">
+          <div className={`border rounded-xl p-4 ${decisionRupture ? 'border-red-200 bg-red-50/60' : 'border-border bg-secondary/30'}`}>
             <div className="flex items-center justify-between mb-2">
-              <Badge variant="secondary" className="text-[10px]">
-                Étape 4 • Décision
+              <Badge variant={decisionRupture ? 'destructive' : 'secondary'} className="text-[10px]">
+                {decisionRupture ? 'Fin de période' : 'Étape 4 • Décision'}
               </Badge>
               <ShieldCheck className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
             </div>
             <h4 className="text-xs font-semibold text-foreground">Terme Période d&apos;Essai</h4>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">{salarie.dateFinPrevisionnelle}</p>
-            <p className="text-[11px] text-muted-foreground mt-2">Confirmation ou renouvellement</p>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {decisionRupture ? 'Période d\'essai terminée' : 'Confirmation ou renouvellement'}
+            </p>
           </div>
         </div>
       </Card>
@@ -381,6 +454,42 @@ export default function DetailSalarieScreen() {
             const isCompleted = p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH';
             const is3M = p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS' || p.numeroPeriode === 1;
 
+            // Carte "morte" : fin de période d'essai et bilan jamais rempli
+            const bloquee = decisionRupture && !isCompleted && !evalDetail;
+            // Bilan à afficher en détail (terminé, ou rupture saisie avec une fiche)
+            const showEval = (isCompleted || p.statut === 'RUPTURE') && !!evalDetail;
+
+            if (bloquee) {
+              return (
+                <Card
+                  key={p.id}
+                  className="p-5 space-y-3 bg-secondary/40 border-dashed opacity-60 grayscale select-none"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-border/70">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-xl bg-secondary text-muted-foreground flex items-center justify-center font-bold text-xs">
+                        {is3M ? '3M' : '6M'}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground tracking-tight">
+                          {is3M ? 'Bilan d\'intégration 3 mois' : 'Bilan stratégique 6 mois'}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground">Échéance : {p.dateEcheance}</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Bloqué
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Ce bilan est bloqué : la période d&apos;essai de {salarie.firstName} {salarie.lastName} est terminée.
+                    Aucune évaluation ne peut plus être remplie.
+                  </p>
+                </Card>
+              );
+            }
+
             return (
               <Card key={p.id} className="p-5 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-border/70">
@@ -397,16 +506,16 @@ export default function DetailSalarieScreen() {
                   </div>
                   <Badge 
                     variant={
-                      p.statut === 'EN_RETARD' ? 'destructive' :
+                      p.statut === 'EN_RETARD' || p.statut === 'RUPTURE' ? 'destructive' :
                       isCompleted ? 'appleGreen' : 'secondary'
                     }
                     className="text-[10px]"
                   >
-                    {p.statut === 'EN_COURS' ? 'En cours' : p.statut === 'EN_RELANCE' ? 'En relance' : p.statut === 'EN_RETARD' ? 'En retard' : p.statut === 'COMPLETEE' ? 'Complétée' : p.statut === 'VALIDEE_RH' ? 'Validée RH' : p.statut === 'RUPTURE' ? 'Rupture' : p.statut}
+                    {p.statut === 'EN_COURS' ? 'En cours' : p.statut === 'EN_RELANCE' ? 'En relance' : p.statut === 'EN_RETARD' ? 'En retard' : p.statut === 'COMPLETEE' ? 'Complétée' : p.statut === 'VALIDEE_RH' ? 'Validée RH' : p.statut === 'RUPTURE' ? 'Fin de période' : p.statut}
                   </Badge>
                 </div>
 
-                {isCompleted && evalDetail ? (
+                {showEval && evalDetail ? (
                   <div className="space-y-3 text-xs">
                     <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/40 border border-border">
                       <span className="text-foreground font-medium">Note Globale d&apos;Évaluation :</span>
@@ -437,7 +546,13 @@ export default function DetailSalarieScreen() {
                     <div className="pt-2 flex items-center justify-between border-t border-border/60 text-xs">
                       <div>
                         <span className="text-muted-foreground">Décision proposée : </span>
-                        <strong className="text-apple-green font-semibold">{p.decisionFinale || 'VALIDATION'}</strong>
+                        <strong
+                          className={`font-semibold ${
+                            (p.decisionFinale || '') === 'RUPTURE' ? 'text-destructive' : 'text-apple-green'
+                          }`}
+                        >
+                          {p.decisionFinale || 'VALIDATION'}
+                        </strong>
                       </div>
                       <Button
                         size="sm"
@@ -472,7 +587,7 @@ export default function DetailSalarieScreen() {
                         onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
                         className="cursor-pointer"
                       >
-                        {p.statut === 'RUPTURE' ? 'Consulter le formulaire' : 'Remplir l\'évaluation'}
+                        Remplir l&apos;évaluation
                       </Button>
                       {isRH && p.statut === 'EN_RETARD' && (
                         <Button
@@ -706,31 +821,46 @@ export default function DetailSalarieScreen() {
             </p>
 
             <div className="space-y-3">
+              {/* Décision : bouton cliquable */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Décision RH
                 </label>
-                <select
-                  value={decisionType}
-                  onChange={(e) => setDecisionType(e.target.value as DecisionPeriode)}
-                  className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none text-foreground font-medium cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => setDecisionType('RUPTURE' as DecisionPeriode)}
+                  aria-pressed={decisionType === 'RUPTURE'}
+                  className={`w-full flex items-center justify-between gap-3 text-xs px-4 py-3 rounded-xl border-2 font-semibold cursor-pointer transition-all ${
+                    decisionType === 'RUPTURE'
+                      ? 'border-red-600 bg-red-50 text-red-700'
+                      : 'border-border bg-secondary/50 text-foreground hover:border-red-200'
+                  }`}
                 >
-                  <option value="CONFIRMATION">Confirmation Définitive de la Période d&apos;Essai</option>
-                  <option value="RENOUVELLEMENT">Renouvellement de la Période d&apos;Essai</option>
-                  <option value="RUPTURE">Rupture / Fin de la Période d&apos;Essai</option>
-                </select>
+                  <span>Fin de la Période d&apos;Essai</span>
+                  {decisionType === 'RUPTURE' && <CheckCircle2 className="w-4 h-4 text-red-600" />}
+                </button>
               </div>
 
+              {/* Motif avec modèle */}
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
-                  Motif / Synthèse RH
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-foreground">
+                    Motif / Synthèse RH <span className="text-red-600">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setDecisionMotif(motifModele)}
+                    className="text-[11px] font-semibold text-red-600 hover:text-red-700 cursor-pointer"
+                  >
+                    Utiliser un modèle
+                  </button>
+                </div>
                 <textarea
-                  rows={3}
+                  rows={5}
                   value={decisionMotif}
                   onChange={(e) => setDecisionMotif(e.target.value)}
                   className="w-full text-xs p-3 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none text-foreground"
-                  placeholder="Justification de la décision prise en concertation avec le responsable hiérarchique..."
+                  placeholder="Écrivez le motif de la décision prise en concertation avec le responsable hiérarchique..."
                 />
               </div>
             </div>
@@ -746,10 +876,55 @@ export default function DetailSalarieScreen() {
               </Button>
               <Button
                 size="sm"
-                onClick={handleConfirmDecision}
+                disabled={decisionType !== 'RUPTURE' || decisionMotif.trim() === ''}
+                onClick={() => setShowConfirmDecisionModal(true)}
                 className="cursor-pointer shadow-xs"
               >
                 Enregistrer et Notifier
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de la décision */}
+      {showDecisionModal && showConfirmDecisionModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2.5 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              <h3 className="text-sm font-semibold tracking-tight">Confirmer la fin de la période d&apos;essai</h3>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Êtes-vous sûr de vouloir mettre fin à la période d&apos;essai de{' '}
+              <strong className="text-foreground">{salarie.firstName} {salarie.lastName}</strong> ?
+              Un email de notification sera envoyé et cette action est irréversible.
+            </p>
+
+            <div className="rounded-xl border border-border bg-secondary/40 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Motif enregistré
+              </p>
+              <p className="text-xs text-foreground whitespace-pre-wrap">{decisionMotif}</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowConfirmDecisionModal(false)}
+                className="cursor-pointer"
+              >
+                Retour
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleConfirmDecision}
+                className="cursor-pointer"
+              >
+                Oui, confirmer
               </Button>
             </div>
           </div>

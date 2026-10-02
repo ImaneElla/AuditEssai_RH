@@ -153,6 +153,21 @@ type Notification = {
   periodeId: string | number;
 };
 
+// Ordre de priorité d'affichage (0 = le plus urgent)
+const PRIORITE: Record<string, number> = {
+  EN_RETARD: 0,
+  EN_RELANCE: 1,
+  EN_COURS: 2,
+  PLANIFIEE: 3,
+  EMAIL_ENVOYE: 3,
+  EN_ATTENTE: 3,
+  COMPLETEE: 4,
+  VALIDEE_RH: 5,
+};
+
+// Nombre maximum de lignes affichées sur le tableau de bord
+const MAX_AFFICHES = 5;
+
 // ============================================================================
 // 2. DASHBOARD RESPONSABLE
 // ============================================================================
@@ -185,6 +200,20 @@ export default function DashboardResponsable() {
     (p) => p.statut === "EN_RETARD"
   );
 
+  // Périodes prioritaires : retard > relance > en cours > complétées (ruptures masquées)
+  const periodesPrioritaires = useMemo(
+    () =>
+      [...periodes]
+        .filter((p) => p.statut !== 'RUPTURE')
+        .sort(
+          (a, b) =>
+            (PRIORITE[a.statut] ?? 9) - (PRIORITE[b.statut] ?? 9) ||
+            new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime()
+        )
+        .slice(0, MAX_AFFICHES),
+    [periodes]
+  );
+
   const notifications: Notification[] = useMemo(() => {
     const late: Notification[] = retards.map((p) => ({
       id: `late-${p.id}`,
@@ -214,7 +243,8 @@ export default function DashboardResponsable() {
     }));
 
     return [...late, ...todo, ...done].slice(0, 6);
-  }, [periodes, aFaire, retards, soumises]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodes]);
 
   const prenomResponsable = currentResponsable
     ? currentResponsable.firstName
@@ -460,7 +490,7 @@ export default function DashboardResponsable() {
         xl:grid-cols-4
       ">
 
-        {/* LISTE DES SALARIÉS AFFECTÉS & ÉVALUATIONS */}
+        {/* LISTE DES SALARIÉS AFFECTÉS & ÉVALUATIONS (PRIORITAIRES) */}
         <Card className="
           overflow-hidden
           rounded-2xl
@@ -494,7 +524,7 @@ export default function DashboardResponsable() {
                 text-[10px]
                 text-zinc-500
               ">
-                Suivi individuel et actions d&apos;évaluation
+                Les évaluations prioritaires en premier
               </p>
             </div>
 
@@ -511,7 +541,7 @@ export default function DashboardResponsable() {
                 cursor-pointer
               "
             >
-              Toutes les périodes
+              Voir tout ({periodes.length})
               <ChevronRight className="
                 ml-1
                 h-3
@@ -524,7 +554,7 @@ export default function DashboardResponsable() {
             divide-y
             divide-zinc-100
           ">
-            {periodes.length === 0 ? (
+            {periodesPrioritaires.length === 0 ? (
               <div className="
                 flex
                 flex-col
@@ -552,7 +582,7 @@ export default function DashboardResponsable() {
                 </p>
               </div>
             ) : (
-              periodes.map((periode) => {
+              periodesPrioritaires.map((periode) => {
                 const isRetard = periode.statut === 'EN_RETARD';
                 const isCompletee = periode.statut === 'COMPLETEE' || periode.statut === 'VALIDEE_RH';
                 const isEnCoursOrRelance = periode.statut === 'EN_COURS' || periode.statut === 'EN_RELANCE' || periode.statut === 'PLANIFIEE';
@@ -663,7 +693,7 @@ export default function DashboardResponsable() {
                       items-center
                       gap-2
                     ">
-                      {/* SPEC SECTION 3 LOGIC:
+                      {/* LOGIQUE :
                           - EN_RETARD -> Bouton "Remplir"
                           - EN_COURS / EN_RELANCE -> Aucun bouton
                           - COMPLETEE / VALIDEE_RH -> Bouton "Consulter" (lecture seule)
@@ -731,6 +761,17 @@ export default function DashboardResponsable() {
               })
             )}
           </div>
+
+          {/* Lien "Voir tout" en bas de la liste */}
+          {periodes.length > periodesPrioritaires.length && (
+            <button
+              onClick={() => navigateTo("periodes")}
+              className="flex w-full cursor-pointer items-center justify-center gap-1 border-t border-zinc-100 py-3 text-[11px] font-semibold text-red-600 transition-colors hover:bg-red-50/50"
+            >
+              Voir tout ({periodes.length})
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          )}
         </Card>
 
         {/* NOTIFICATIONS */}
