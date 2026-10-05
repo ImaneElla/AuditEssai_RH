@@ -8,8 +8,6 @@ import {
   UserPlus,
   Search,
   Mail,
-  Phone,
-  Briefcase,
   Building2,
   Pencil,
   Trash2,
@@ -28,8 +26,6 @@ interface FormState {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  poste: string;
   directionId: number;
 }
 
@@ -37,8 +33,6 @@ const EMPTY_FORM: FormState = {
   firstName: '',
   lastName: '',
   email: '',
-  phone: '',
-  poste: 'Manager / Responsable d\'équipe',
   directionId: 1
 };
 
@@ -55,8 +49,7 @@ export default function GestionResponsable() {
     directions = [],
     addResponsable,
     updateResponsable,
-    deleteResponsable,
-    navigateTo
+    deleteResponsable
   } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,14 +61,23 @@ export default function GestionResponsable() {
   const [formData, setFormData] = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState('');
 
-  const filteredResponsables = responsables.filter(r => {
+  const filteredResponsables = responsables.filter((r) => {
     const fullName = `${r.firstName || ''} ${r.lastName || ''}`.toLowerCase();
     const query = searchTerm.toLowerCase();
-    return fullName.includes(query) || (r.email || '').toLowerCase().includes(query) || (r.poste || '').toLowerCase().includes(query) || (r.directionName || '').toLowerCase().includes(query);
+    return (
+      fullName.includes(query) ||
+      (r.email || '').toLowerCase().includes(query) ||
+      (r.directionName || '').toLowerCase().includes(query)
+    );
   });
 
   const getSubs = (resp: Responsable) =>
-    salaries.filter(s => s.responsableId === resp.id || (s.responsableNom && s.responsableNom.toLowerCase() === `${resp.firstName} ${resp.lastName}`.toLowerCase()));
+    salaries.filter(
+      (s) =>
+        s.responsableId === resp.id ||
+        (s.responsableNom &&
+          s.responsableNom.toLowerCase() === `${resp.firstName} ${resp.lastName}`.toLowerCase())
+    );
 
   const openAddModal = () => {
     setIsEditing(false);
@@ -94,8 +96,6 @@ export default function GestionResponsable() {
       firstName: resp.firstName,
       lastName: resp.lastName,
       email: resp.email,
-      phone: resp.phone || '',
-      poste: resp.poste || '',
       directionId: resp.directionId || (directions.length > 0 ? directions[0].id : 1)
     });
     setFormError('');
@@ -111,7 +111,7 @@ export default function GestionResponsable() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: name === 'directionId' ? Number(value) : value
     }));
@@ -129,12 +129,11 @@ export default function GestionResponsable() {
       return;
     }
 
-    // Check duplicate email
     const exists = responsables.some(
-      r => r.email.toLowerCase() === email.toLowerCase() && (!isEditing || r.id !== formData.id)
+      (r) => r.email.toLowerCase() === email.toLowerCase() && (!isEditing || r.id !== formData.id)
     );
     if (exists) {
-      setFormError('Un responsable avec cette adresse e-mail existe déjá .');
+      setFormError('Un responsable avec cette adresse e-mail existe déjà.');
       return;
     }
 
@@ -143,8 +142,6 @@ export default function GestionResponsable() {
         firstName,
         lastName,
         email,
-        phone: formData.phone.trim(),
-        poste: formData.poste.trim() || 'Responsable',
         directionId: formData.directionId
       });
     } else {
@@ -152,8 +149,6 @@ export default function GestionResponsable() {
         firstName,
         lastName,
         email,
-        phone: formData.phone.trim(),
-        poste: formData.poste.trim() || 'Responsable',
         directionId: formData.directionId
       });
     }
@@ -200,10 +195,13 @@ export default function GestionResponsable() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
+            <Search
+              className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2"
+              strokeWidth={1.75}
+            />
             <input
               type="text"
-              placeholder="Rechercher par nom, email, pá´le ou fonction..."
+              placeholder="Rechercher par nom, email ou direction..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-xs bg-zinc-50/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
@@ -222,7 +220,9 @@ export default function GestionResponsable() {
                 aria-label="Vue liste"
                 onClick={() => setViewMode('list')}
                 className={`h-7 w-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
-                  viewMode === 'list' ? 'bg-white dark:bg-zinc-800 shadow-2xs text-red-600 dark:text-red-400' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-zinc-800 shadow-2xs text-red-600 dark:text-red-400'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }`}
               >
                 <LayoutList className="w-4 h-4" strokeWidth={1.75} />
@@ -233,7 +233,9 @@ export default function GestionResponsable() {
                 aria-label="Vue cartes"
                 onClick={() => setViewMode('cards')}
                 className={`h-7 w-7 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
-                  viewMode === 'cards' ? 'bg-white dark:bg-zinc-800 shadow-2xs text-red-600 dark:text-red-400' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  viewMode === 'cards'
+                    ? 'bg-white dark:bg-zinc-800 shadow-2xs text-red-600 dark:text-red-400'
+                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4" strokeWidth={1.75} />
@@ -249,7 +251,9 @@ export default function GestionResponsable() {
             </div>
             <p className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm">Aucun responsable enregistré</p>
             <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-              {searchTerm ? "Aucun responsable ne correspond á  votre recherche." : "Ajoutez un premier responsable pour commencer l'affectation de salariés."}
+              {searchTerm
+                ? 'Aucun responsable ne correspond à votre recherche.'
+                : "Ajoutez un premier responsable pour commencer l'affectation de salariés."}
             </p>
             {!searchTerm && (
               <Button
@@ -276,8 +280,8 @@ export default function GestionResponsable() {
                 <tr>
                   <th className="py-3.5 px-4 whitespace-nowrap truncate">Responsable</th>
                   <th className="py-3.5 px-4 whitespace-nowrap truncate">Contact</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap truncate">Direction / Pá´le</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap truncate">équipe</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap truncate">Direction / Pôle</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap truncate">Équipe</th>
                   <th className="py-3.5 px-4 whitespace-nowrap truncate text-right">Actions</th>
                 </tr>
               </thead>
@@ -298,20 +302,17 @@ export default function GestionResponsable() {
                               {fullName}
                             </span>
                             <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block truncate">
-                              {resp.poste || 'Responsable hiérarchique'}
+                              Responsable N+1
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 align-middle whitespace-nowrap overflow-hidden">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                            <span title={resp.email} className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
-                              {resp.email}
-                            </span>
-                          </div>
-   
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          <span title={resp.email} className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+                            {resp.email}
+                          </span>
                         </div>
                       </td>
                       <td className="py-3 px-4 align-middle whitespace-nowrap overflow-hidden">
@@ -322,7 +323,9 @@ export default function GestionResponsable() {
                       <td className="py-3 px-4 align-middle whitespace-nowrap overflow-hidden">
                         {subs.length > 0 ? (
                           <div className="flex items-center gap-1.5 overflow-hidden">
-                            <span className="text-[11px] font-mono font-bold text-zinc-900 dark:text-zinc-100 shrink-0">{subs.length}</span>
+                            <span className="text-[11px] font-mono font-bold text-zinc-900 dark:text-zinc-100 shrink-0">
+                              {subs.length}
+                            </span>
                             {subs.slice(0, 2).map((collab) => (
                               <span
                                 key={collab.id}
@@ -375,7 +378,10 @@ export default function GestionResponsable() {
               const fullName = `${resp.firstName} ${resp.lastName}`;
 
               return (
-                <Card key={resp.id} className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+                <Card
+                  key={resp.id}
+                  className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                >
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3">
@@ -386,9 +392,7 @@ export default function GestionResponsable() {
                           <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
                             {fullName}
                           </h3>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                            {resp.poste || 'Responsable N+1'}
-                          </p>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Responsable N+1</p>
                         </div>
                       </div>
                     </div>
@@ -396,24 +400,35 @@ export default function GestionResponsable() {
                     <div className="py-3 border-y border-zinc-100 dark:border-zinc-800 space-y-1.5">
                       <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                         <Mail className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        <span className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300">{resp.email}</span>
+                        <span className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+                          {resp.email}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                         <Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        <span className="truncate text-[11px] text-zinc-700 dark:text-zinc-300">{resp.directionName || 'Direction'}</span>
+                        <span className="truncate text-[11px] text-zinc-700 dark:text-zinc-300">
+                          {resp.directionName || 'Direction'}
+                        </span>
                       </div>
                     </div>
 
                     <div className="mt-4">
                       <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-medium text-zinc-600 dark:text-zinc-400 text-[11px]">Collaborateurs rattachés</span>
-                        <span className="text-[11px] font-mono font-bold text-zinc-900 dark:text-zinc-100">{subs.length}</span>
+                        <span className="font-medium text-zinc-600 dark:text-zinc-400 text-[11px]">
+                          Collaborateurs rattachés
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                          {subs.length}
+                        </span>
                       </div>
 
                       {subs.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {subs.slice(0, 3).map((collab) => (
-                            <span key={collab.id} className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                            <span
+                              key={collab.id}
+                              className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60"
+                            >
                               {collab.firstName} {collab.lastName}
                             </span>
                           ))}
@@ -424,7 +439,9 @@ export default function GestionResponsable() {
                           )}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 italic">Aucun collaborateur rattaché</p>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 italic">
+                          Aucun collaborateur rattaché
+                        </p>
                       )}
                     </div>
                   </div>
@@ -473,8 +490,8 @@ export default function GestionResponsable() {
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   {isEditing
-                    ? 'Mettre á  jour les informations du profil et l\'affectation du responsable.'
-                    : 'Créer un profil de Responsable N+1 pour la gestion des évaluations d\'équipe.'}
+                    ? "Mettre à jour les informations du profil et l'affectation du responsable."
+                    : "Créer un profil de Responsable N+1 pour la gestion des évaluations d'équipe."}
                 </p>
               </div>
               <button
@@ -500,7 +517,7 @@ export default function GestionResponsable() {
                       type="text"
                       name="firstName"
                       required
-                      placeholder="e.g. Thomas"
+                      placeholder="ex. Thomas"
                       value={formData.firstName}
                       onChange={handleChange}
                       className={inputClass}
@@ -519,7 +536,7 @@ export default function GestionResponsable() {
                       type="text"
                       name="lastName"
                       required
-                      placeholder="e.g. Bernard"
+                      placeholder="ex. Bernard"
                       value={formData.lastName}
                       onChange={handleChange}
                       className={inputClass}
@@ -528,31 +545,28 @@ export default function GestionResponsable() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="resp_email" className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                    Adresse e-mail <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
-                    <input
-                      id="resp_email"
-                      type="email"
-                      name="email"
-                      required
-                      placeholder="responsable@groupe-premium.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className={inputClass}
-                    />
-                  </div>
-
-             
+              <div className="space-y-1.5">
+                <label htmlFor="resp_email" className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                  Adresse e-mail <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
+                  <input
+                    id="resp_email"
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="responsable@groupe-premium.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="resp_direction" className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                  Direction
+                  Direction / Pôle
                 </label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
@@ -571,7 +585,6 @@ export default function GestionResponsable() {
                   </select>
                 </div>
               </div>
-                  </div>
 
               {formError && (
                 <p className="text-[11px] text-red-600 dark:text-red-400 font-medium">{formError}</p>
@@ -607,16 +620,25 @@ export default function GestionResponsable() {
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl max-w-sm w-full p-6 space-y-4">
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
               <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Supprimer le responsable</h3>
+              <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Supprimer le responsable
+              </h3>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Vous êtes sûr de vouloir supprimer <strong className="text-zinc-900 dark:text-zinc-100">{selectedResp?.firstName} {selectedResp?.lastName}</strong> ({selectedResp?.email}) ?
+              Vous êtes sûr de vouloir supprimer{' '}
+              <strong className="text-zinc-900 dark:text-zinc-100">
+                {selectedResp?.firstName} {selectedResp?.lastName}
+              </strong>{' '}
+              ({selectedResp?.email}) ?
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { setShowDeleteModal(false); setSelectedResp(null); }}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setSelectedResp(null);
+                }}
                 className="rounded-xl text-xs cursor-pointer"
               >
                 Annuler
