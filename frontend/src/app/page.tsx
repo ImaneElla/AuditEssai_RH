@@ -18,6 +18,8 @@ import DashboardResponsable from '@/components/screens/DashboardResponsable';
 import NotificationsScreen from '@/components/screens/NotificationsScreen';
 import ParametresScreen from '@/components/screens/ParametresScreen';
 import AideScreen from '@/components/screens/AideScreen';
+import AIAnalysisScreen from '@/components/screens/AIAnalysisScreen';
+import ArchivesScreen from '@/components/screens/Archivesscreen';
 
 export default function Page() {
   const { currentScreen } = useApp();
@@ -38,6 +40,10 @@ export default function Page() {
         return <EmailsScreen />;
       case 'notifications':
         return <NotificationsScreen />;
+      case 'analyse-ia':
+        return <AIAnalysisScreen />;
+      case 'archive':
+        return <ArchivesScreen />;
       case 'moteur':
         return <DashboardScreen />;
       case 'responsables':

@@ -41,6 +41,8 @@ export type ScreenId =
   | 'retards'
   | 'emails'
   | 'moteur'
+  | 'analyse-ia'
+  | 'archive'
   | 'notifications'
   | 'responsables'
   | 'ajouter-responsable'
@@ -121,6 +123,7 @@ interface AppContextType {
   users: User[];
   allSalaries: Salarie[];
   salaries: Salarie[]; // Filtered by currentRole
+  archives: Salarie[];
   allPeriodes: PeriodeEvaluation[];
   periodes: PeriodeEvaluation[]; // Filtered by currentRole
   evaluations: EvaluationDetail[];
@@ -154,6 +157,7 @@ interface AppContextType {
     }
   ) => void;
   deleteSalarie: (salarieId: number) => void;
+  restaurerSalarie: (salarieId: number) => void;
   addResponsable: (data: {
     firstName: string;
     lastName: string;
@@ -492,6 +496,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return salariesList;
   }, [salariesList, currentRole, currentResponsable]);
 
+  const archives = useMemo(
+    () => salaries.filter(salarie => salarie.actif === false),
+    [salaries]
+  );
+
   const periodes = useMemo(() => {
     if (currentRole === 'RESPONSABLE' && currentResponsable) {
       return periodesList.filter(p => p.responsableId === currentResponsable.id);
@@ -512,6 +521,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       'detail-responsable',
       'ajouter-responsable',
       'moteur',
+      'analyse-ia',
+      'archive',
       'emails',
     ];
     if (currentRole === 'RESPONSABLE' && rhOnlyScreens.includes(screen)) {
@@ -687,6 +698,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPeriodesList(prev => prev.filter(periode => periode.salarieId !== salarieId));
     setEvaluations(prev => prev.filter(evaluation => !periodeIds.includes(evaluation.periodeId)));
     showToast('Le salarié a été supprimé.');
+  };
+
+  const restaurerSalarie = (salarieId: number) => {
+    setSalariesList(prev => prev.map(salarie =>
+      salarie.id === salarieId ? { ...salarie, actif: true } : salarie
+    ));
+    showToast('Le salarié a été restauré dans la liste active.');
   };
 
   const addResponsable = (data: {
@@ -902,7 +920,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         showToast(`Période 1 (3M) validée. Période 2 (6M) générée automatiquement pour le ${date6M}.`);
       } else {
-        showToast(`Fiche d'évaluation de la Période 2 (6M) enregistrée.`);
+        // EPIC 5: Période 2 complétée → archivage si confirmation / titularisation
+        const isConfirmation =
+          data.recommandation === 'TITULARISATION' ||
+          data.recommandation === 'CONFIRMATION' ||
+          data.recommandation === 'VALIDATION';
+
+        if (isConfirmation && salarie) {
+          setSalariesList(prev =>
+            prev.map(s =>
+              s.id === targetPeriode.salarieId
+                ? {
+                    ...s,
+                    statutEssai: 'CONFIRMEE',
+                    bloqueEmails: true,
+                    actif: false,
+                    PeriodeActuel: 'TERMINE',
+                  }
+                : s
+            )
+          );
+          showToast(
+            `Évaluation confirmée pour ${targetPeriode.salarieNom}. Le dossier a été archivé.`
+          );
+        } else {
+          showToast(`Fiche d'évaluation de la Période 2 (6M) enregistrée.`);
+        }
       }
     }
 
@@ -952,7 +995,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setNotifications(prev => [evalNotif, ...prev]);
 
-    navigateTo('periodes');
+    // Redirection : vers les Archives si le salarié est archivé, sinon vers les Périodes
+    const isPeriod2 = !(targetPeriode.typePeriode === 'TROIS_MOIS' || targetPeriode.numeroPeriode === 1);
+    const isConfirmationFinal =
+      isPeriod2 &&
+      (data.recommandation === 'TITULARISATION' ||
+        data.recommandation === 'CONFIRMATION' ||
+        data.recommandation === 'VALIDATION');
+
+    if (isRupture || isConfirmationFinal) {
+      navigateTo('archive');
+    } else {
+      navigateTo('periodes');
+    }
   };
 
 const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: string) => {
@@ -1065,7 +1120,21 @@ const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: 
     return p;
   }));
 
-  showToast(`Décision RH (${decision}) validée pour ${targetPeriode.salarieNom}.`);
+  if (decision === 'CONFIRMATION' || decision === 'TITULARISATION' || decision === 'VALIDATION') {
+    setSalariesList(prev => prev.map(s =>
+      s.id === targetPeriode.salarieId
+        ? {
+            ...s,
+            statutEssai: 'CONFIRMEE',
+            bloqueEmails: true,
+            actif: false,
+            PeriodeActuel: 'TERMINE',
+          }
+        : s
+    ));
+  }
+
+  showToast(`Décision RH (${decision}) validée pour ${targetPeriode.salarieNom}. Dossier archivé.`);
 };
 
   // EPIC 1: Automated email check (3 emails at J-21, J-14, J-7)
@@ -1253,6 +1322,7 @@ const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: 
         users,
         allSalaries: salariesList,
         salaries,
+        archives,
         allPeriodes: periodesList,
         periodes,
         evaluations,
@@ -1261,6 +1331,7 @@ const validerDecisionRH = (periodeId: number, decision: DecisionPeriode, motif: 
         addSalarie,
         updateSalarie,
         deleteSalarie,
+        restaurerSalarie,
         addResponsable,
         updateResponsable,
         deleteResponsable,

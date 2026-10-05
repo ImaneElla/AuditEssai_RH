@@ -17,7 +17,9 @@ import {
   Settings,
   Info,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Sparkles,
+  Box,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -45,7 +47,9 @@ export default function Sidebar() {
     { id: 'salaries', label: isRH ? 'Gestion des salariés' : 'Mes salariés affectés', icon: Users, badge: isRH ? enCoursCount : salaries.length, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'gestion-responsable', label: 'Gestion des responsables', icon: Briefcase, roleVisibility: ['ADMIN_RH'] },
     { id: 'periodes', label: isRH ? 'Périodes d\'évaluation' : 'Évaluations à réaliser', icon: CalendarCheck, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
+    { id: 'analyse-ia', label: 'Analyse IA', icon: Sparkles, roleVisibility: ['ADMIN_RH'] },
     { id: 'retards', label: isRH ? 'Suivi des retards' : 'Retards équipe', icon: AlertTriangle, badge: retardsCount > 0 ? `${retardsCount}` : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
+    { id: 'archive', label: 'Archive', icon: Box, roleVisibility: ['ADMIN_RH'] },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadNotifsCount > 0 ? unreadNotifsCount : undefined, badgeVariant: 'destructive', roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'parametres', label: 'Paramètres', icon: Settings, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] },
     { id: 'aide', label: 'Aide & Support', icon: Info, roleVisibility: ['ADMIN_RH', 'RESPONSABLE'] }

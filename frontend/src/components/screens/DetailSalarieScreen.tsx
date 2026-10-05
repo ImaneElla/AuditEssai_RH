@@ -19,12 +19,45 @@ import {
   Trash2,
   X,
   Eye,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 import { DecisionPeriode } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+
+// ─── Options de décision RH (3 boutons) ─────────────────────────────────
+// ⚠️ Vérifiez que ces valeurs correspondent à votre type DecisionPeriode
+const DECISION_OPTIONS: {
+  value: string;
+  label: string;
+  icon: React.ElementType;
+  active: string;
+  hover: string;
+}[] = [
+  {
+    value: 'CONFIRMATION',
+    label: 'Valider',
+    icon: CheckCircle2,
+    active: 'border-green-600 bg-green-50 text-green-700',
+    hover: 'hover:border-green-200',
+  },
+  {
+    value: 'RENOUVELLEMENT',
+    label: 'Renouveler',
+    icon: RefreshCw,
+    active: 'border-blue-600 bg-blue-50 text-blue-700',
+    hover: 'hover:border-blue-200',
+  },
+  {
+    value: 'RUPTURE',
+    label: "Fin d'essai",
+    icon: AlertTriangle,
+    active: 'border-red-600 bg-red-50 text-red-700',
+    hover: 'hover:border-red-200',
+  },
+];
 
 export default function DetailSalarieScreen() {
   const { 
@@ -45,7 +78,7 @@ export default function DetailSalarieScreen() {
   const [activeTab, setActiveTab] = useState<'PARCOURS' | 'EMAILS'>('PARCOURS');
   const [showDecisionModal, setShowDecisionModal] = useState<boolean>(false);
   const [showConfirmDecisionModal, setShowConfirmDecisionModal] = useState<boolean>(false);
-  const [decisionType, setDecisionType] = useState<DecisionPeriode>('CONFIRMATION');
+  const [decisionType, setDecisionType] = useState<DecisionPeriode | null>(null);
   const [decisionMotif, setDecisionMotif] = useState<string>('');
 
   // Modales d'édition et de suppression
@@ -104,16 +137,27 @@ export default function DetailSalarieScreen() {
 
   // Ouverture du modal de décision : on repart d'un formulaire vide
   const openDecisionModal = () => {
-    setDecisionType('CONFIRMATION'); // aucune décision sélectionnée au départ
+    setDecisionType(null); // aucune décision sélectionnée au départ
     setDecisionMotif('');
     setShowConfirmDecisionModal(false);
     setShowDecisionModal(true);
   };
 
-  // Modèle de motif prêt à compléter
-  const motifModele = `Suite à l'évaluation de la période d'essai de ${salarie.firstName} ${salarie.lastName} et en concertation avec ${salarie.responsableNom}, il a été décidé de mettre fin à la période d'essai.\n\nMotif : `;
+  // Modèles de motif prêts à compléter (un par décision)
+  const nomComplet = `${salarie.firstName} ${salarie.lastName}`;
+
+  const motifModeles: Record<string, string> = {
+    CONFIRMATION: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de confirmer son embauche définitive.\n\nMotif : `,
+    RENOUVELLEMENT: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de renouveler sa période d'essai afin de poursuivre son évaluation.\n\nMotif : `,
+    RUPTURE: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de mettre fin à la période d'essai.\n\nMotif : `,
+  };
+
+  const decisionLabel =
+    DECISION_OPTIONS.find(o => o.value === decisionType)?.label ?? '';
 
   const handleConfirmDecision = () => {
+    if (!decisionType) return;
+
     // La décision cible toujours la période en cours (la plus ancienne non terminée)
     const activeP =
       [...salariePeriodes]
@@ -124,6 +168,11 @@ export default function DetailSalarieScreen() {
     }
     setShowConfirmDecisionModal(false);
     setShowDecisionModal(false);
+
+    // Si la décision archive le salarié → redirection vers les Archives
+    if (decisionType === 'CONFIRMATION' || decisionType === 'TITULARISATION' || decisionType === 'RUPTURE') {
+      navigateTo('archive');
+    }
   };
 
   // Soumission des modifications du salarié
@@ -821,24 +870,32 @@ export default function DetailSalarieScreen() {
             </p>
 
             <div className="space-y-3">
-              {/* Décision : bouton cliquable */}
+              {/* Décision : 3 boutons cliquables */}
               <div>
                 <label className="block text-xs font-medium text-foreground mb-1">
                   Décision RH
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setDecisionType('RUPTURE' as DecisionPeriode)}
-                  aria-pressed={decisionType === 'RUPTURE'}
-                  className={`w-full flex items-center justify-between gap-3 text-xs px-4 py-3 rounded-xl border-2 font-semibold cursor-pointer transition-all ${
-                    decisionType === 'RUPTURE'
-                      ? 'border-red-600 bg-red-50 text-red-700'
-                      : 'border-border bg-secondary/50 text-foreground hover:border-red-200'
-                  }`}
-                >
-                  <span>Fin de la Période d&apos;Essai</span>
-                  {decisionType === 'RUPTURE' && <CheckCircle2 className="w-4 h-4 text-red-600" />}
-                </button>
+                <div className="grid grid-cols-3 gap-2">
+                  {DECISION_OPTIONS.map(({ value, label, icon: Icon, active, hover }) => {
+                    const selected = decisionType === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setDecisionType(value as DecisionPeriode)}
+                        aria-pressed={selected}
+                        className={`flex flex-col items-center justify-center gap-1.5 text-xs px-3 py-3 rounded-xl border-2 font-semibold cursor-pointer transition-all ${
+                          selected
+                            ? active
+                            : `border-border bg-secondary/50 text-foreground ${hover}`
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" strokeWidth={1.75} />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Motif avec modèle */}
@@ -849,8 +906,9 @@ export default function DetailSalarieScreen() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setDecisionMotif(motifModele)}
-                    className="text-[11px] font-semibold text-red-600 hover:text-red-700 cursor-pointer"
+                    disabled={!decisionType}
+                    onClick={() => decisionType && setDecisionMotif(motifModeles[decisionType])}
+                    className="text-[11px] font-semibold text-red-600 hover:text-red-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Utiliser un modèle
                   </button>
@@ -876,7 +934,7 @@ export default function DetailSalarieScreen() {
               </Button>
               <Button
                 size="sm"
-                disabled={decisionType !== 'RUPTURE' || decisionMotif.trim() === ''}
+                disabled={!decisionType || decisionMotif.trim() === ''}
                 onClick={() => setShowConfirmDecisionModal(true)}
                 className="cursor-pointer shadow-xs"
               >
@@ -888,17 +946,23 @@ export default function DetailSalarieScreen() {
       )}
 
       {/* Modal de confirmation de la décision */}
-      {showDecisionModal && showConfirmDecisionModal && (
+      {showDecisionModal && showConfirmDecisionModal && decisionType && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card rounded-2xl border border-border shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-2.5 text-destructive">
+            <div
+              className={`flex items-center gap-2.5 ${
+                decisionType === 'RUPTURE' ? 'text-destructive' : 'text-foreground'
+              }`}
+            >
               <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-sm font-semibold tracking-tight">Confirmer la fin de la période d&apos;essai</h3>
+              <h3 className="text-sm font-semibold tracking-tight">
+                Confirmer la décision : {decisionLabel}
+              </h3>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Êtes-vous sûr de vouloir mettre fin à la période d&apos;essai de{' '}
-              <strong className="text-foreground">{salarie.firstName} {salarie.lastName}</strong> ?
+              Êtes-vous sûr de vouloir enregistrer la décision «&nbsp;{decisionLabel}&nbsp;» pour{' '}
+              <strong className="text-foreground">{nomComplet}</strong> ?
               Un email de notification sera envoyé et cette action est irréversible.
             </p>
 
@@ -919,7 +983,7 @@ export default function DetailSalarieScreen() {
                 Retour
               </Button>
               <Button
-                variant="destructive"
+                variant={decisionType === 'RUPTURE' ? 'destructive' : 'default'}
                 size="sm"
                 onClick={handleConfirmDecision}
                 className="cursor-pointer"

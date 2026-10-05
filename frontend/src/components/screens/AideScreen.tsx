@@ -507,6 +507,11 @@ export default function AideScreen() {
           {SUPPORT_EMAIL}
         </a>
       </Card>
+      <div className="text-[11px] text-muted-foreground text-center">
+      <button className="text-[11px] text-muted-foreground hover:text-foreground transition-colors flex justify-center align-center text-center">
+        &copy; {new Date().getFullYear()} Premium Essai Manager
+      </button>
+     </div>
     </div>
   );
-}
+} 

@@ -149,6 +149,8 @@ export default function SalariesListScreen() {
 
   const filteredSalaries = useMemo(() => {
     return salaries.filter((s) => {
+      if (s.actif === false) return false;
+
       const matchesSearch =
         `${s.firstName} ${s.lastName}`
           .toLowerCase()

@@ -202,7 +202,7 @@ export const initialSalaries: Salarie[] = [
     responsableNom: "Houda Chraibi",
     statutEssai: "CONFIRMEE",
     PeriodeActuel: "TERMINE",
-    actif: true
+    actif: false
   },
   {
     id: 6,

@@ -5,7 +5,6 @@ import { useApp } from '../../context/AppContext';
 import {
   AlertTriangle,
   Clock,
-  CheckCircle2,
   CalendarDays,
   ChevronRight,
   Search,
@@ -15,14 +14,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
-type KpiFilter = 'ALL' | 'ATTENTE' | 'RETARD' | 'FINALISEES';
+type KpiFilter = 'ALL' | 'ACTIVES' | 'ATTENTE' | 'RETARD';
 
-// Statuts "à faire" : en cours / relance / en attente
-const ATTENTE_STATUTS = ['EN_ATTENTE', 'EMAIL_ENVOYE', 'EN_COURS', 'EN_RELANCE'];
-// Statuts "retard" : relance + retard
-const RETARD_STATUTS = ['EN_RETARD', 'EN_RELANCE'];
+// En cours + relance (sans EN_ATTENTE / EMAIL_ENVOYE)
+const ATTENTE_STATUTS = ['EN_COURS', 'EN_RELANCE'];
+// Retard : J-7 uniquement
+const RETARD_STATUTS = ['EN_RETARD'];
 // Formulaire rempli par le responsable
 const FINALISEES_STATUTS = ['COMPLETEE', 'VALIDEE_RH'];
+// Périodes non actives : complétées, validées RH ou en rupture
+const INACTIVES_STATUTS = [...FINALISEES_STATUTS, 'RUPTURE'];
 
 /* ---------- KPI card (design d'origine) ---------- */
 interface KpiCardProps {
@@ -111,7 +112,7 @@ function KpiCard({
 }
 
 export default function PeriodesScreen() {
-  const { periodes = [], navigateTo, currentRole } = useApp();
+  const { periodes = [], salaries = [], navigateTo, currentRole } = useApp();
 
   const isRH = currentRole === 'ADMIN_RH';
   const [search, setSearch] = useState<string>('');
@@ -123,15 +124,19 @@ export default function PeriodesScreen() {
     (v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   const query = normalize(search.trim());
+  const activeSalarieIds = new Set(
+    salaries.filter((salarie) => salarie.actif !== false).map((salarie) => salarie.id)
+  );
+  const periodesVisibles = periodes.filter((periode) => activeSalarieIds.has(periode.salarieId));
 
-  const filtered = periodes.filter((p) => {
+  const filtered = periodesVisibles.filter((p) => {
     const matchType = filterType === 'ALL' || p.typePeriode === filterType;
     const matchStatut = filterStatut === 'ALL' || p.statut === filterStatut;
     const matchKpi =
       kpiFilter === 'ALL' ||
+      (kpiFilter === 'ACTIVES' && !INACTIVES_STATUTS.includes(p.statut)) ||
       (kpiFilter === 'ATTENTE' && ATTENTE_STATUTS.includes(p.statut)) ||
-      (kpiFilter === 'RETARD' && RETARD_STATUTS.includes(p.statut)) ||
-      (kpiFilter === 'FINALISEES' && FINALISEES_STATUTS.includes(p.statut));
+      (kpiFilter === 'RETARD' && RETARD_STATUTS.includes(p.statut));
     const matchSearch =
       query === '' ||
       normalize(p.salarieNom).includes(query) ||
@@ -150,23 +155,18 @@ export default function PeriodesScreen() {
     return isNaN(t) ? null : Math.round((t - today.getTime()) / 86400000);
   };
 
-  const totalPeriodes = periodes.length;
-  const count3M = periodes.filter(
-    (p) => p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS'
-  ).length;
-  const count6M = totalPeriodes - count3M;
+  // 1. Total périodes actives (sans complétées / validées RH / ruptures)
+  const actives = periodesVisibles.filter((p) => !INACTIVES_STATUTS.includes(p.statut));
+  const totalActives = actives.length;
+  const nbSalaries = new Set(actives.map((p) => p.salarieId)).size;
 
-  const nbSalaries = new Set(periodes.map((p) => p.salarieId)).size;
-  const enAttente = periodes.filter((p) => ATTENTE_STATUTS.includes(p.statut));
-  const enRetard = periodes.filter((p) => RETARD_STATUTS.includes(p.statut));
-  const finalisees = periodes.filter((p) => FINALISEES_STATUTS.includes(p.statut));
-  const aValiderRH = periodes.filter((p) => p.statut === 'COMPLETEE').length;
+  // 2. Salariés liés à En cours + En relance
+  const enAttente = periodesVisibles.filter((p) => ATTENTE_STATUTS.includes(p.statut));
+  const nbSalariesEnAttente = new Set(enAttente.map((p) => p.salarieId)).size;
 
-  const enAttenteCount = enAttente.length;
+  // 3. En retard (J-7), hors complétées / ruptures
+  const enRetard = periodesVisibles.filter((p) => RETARD_STATUTS.includes(p.statut));
   const enRetardCount = enRetard.length;
-  const completeesCount = finalisees.length;
-  const progress =
-    totalPeriodes > 0 ? Math.round((completeesCount / totalPeriodes) * 100) : 0;
 
   const prochaine = [...enAttente]
     .filter((p) => daysFromToday(p.dateEcheance) !== null)
@@ -210,7 +210,20 @@ export default function PeriodesScreen() {
     }
   };
 
-  const formatDate = (d?: string | null) => (d ? d : '—');
+  // Date de clôture : remplie automatiquement quand la période est
+  // complétée, validée RH ou en rupture. Sinon "—".
+  const dateCloture = (p: any) => {
+    if (!INACTIVES_STATUTS.includes(p.statut)) return '—';
+    const d =
+      p.dateValidationEvaluateur ??
+      p.dateValidationRH ??
+      p.dateRupture ??
+      p.updatedAt ??
+      null;
+    if (d) return d;
+    // Aucune date fournie par l'API : on met la date du jour
+    return new Date().toISOString().slice(0, 10);
+  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -231,26 +244,23 @@ export default function PeriodesScreen() {
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           icon={CalendarDays}
-          title="Total Périodes"
-          value={totalPeriodes}
-          unit="évaluations"
-          chip={`Tous les statuts sont inclus`}
+          title="Total Périodes Actives"
+          value={totalActives}
+          unit={totalActives > 1 ? 'évaluations' : 'évaluation'}
+          chip="Hors complétées et ruptures"
           detail={`${nbSalaries} salarié${nbSalaries > 1 ? 's' : ''} concerné${nbSalaries > 1 ? 's' : ''}`}
-          active={kpiFilter === 'ALL'}
-          onClick={() => {
-            setFilterStatut('ALL');
-            setKpiFilter('ALL');
-          }}
+          active={kpiFilter === 'ACTIVES'}
+          onClick={() => toggleKpi('ACTIVES')}
         />
 
         <KpiCard
           icon={Clock}
           title="En Cours & Relance"
-          value={enAttenteCount}
-          unit="formulaires"
+          value={nbSalariesEnAttente}
+          unit={nbSalariesEnAttente > 1 ? 'salariés' : 'salarié'}
           chip={
             prochaine && prochaineJours !== null
               ? prochaineJours < 0
@@ -267,7 +277,7 @@ export default function PeriodesScreen() {
 
         <KpiCard
           icon={AlertTriangle}
-          title="En Relance / Retard"
+          title="En Retard (J-7)"
           value={enRetardCount}
           unit={enRetardCount > 1 ? 'évaluations' : 'évaluation'}
           chip={enRetardCount > 0 ? 'Attention requise' : 'À jour'}
@@ -276,25 +286,6 @@ export default function PeriodesScreen() {
           active={kpiFilter === 'RETARD'}
           onClick={() => toggleKpi('RETARD')}
         />
-
-        <KpiCard
-          icon={CheckCircle2}
-          title="Finalisées"
-          value={completeesCount}
-          unit={`sur ${totalPeriodes}`}
-          chip={
-            isRH && aValiderRH > 0 ? `${aValiderRH} à valider RH` : `${progress} % terminées`
-          }
-          active={kpiFilter === 'FINALISEES'}
-          onClick={() => toggleKpi('FINALISEES')}
-        >
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </KpiCard>
       </div>
 
       {/* FILTERS */}
@@ -362,7 +353,7 @@ export default function PeriodesScreen() {
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Responsable</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Direction</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Échéance</th>
-              <th className="py-3.5 px-3 whitespace-nowrap truncate">Date Validation</th>
+              <th className="py-3.5 px-3 whitespace-nowrap truncate">Date de Clôture</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate">Statut</th>
               <th className="py-3.5 px-3 whitespace-nowrap truncate text-right">Actions</th>
             </tr>
@@ -396,8 +387,8 @@ export default function PeriodesScreen() {
                         className="text-[10px] font-semibold whitespace-nowrap"
                       >
                         {p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS'
-                          ? '3 mois'
-                          : '6 mois'}
+                          ? 'Periode 1 (3 mois)'
+                          : 'Periode 2 (6 mois)'}
                       </Badge>
                     </td>
 
@@ -438,7 +429,7 @@ export default function PeriodesScreen() {
                     </td>
 
                     <td className="py-3.5 px-3 align-middle whitespace-nowrap truncate font-mono text-[11px] text-zinc-700">
-                      {formatDate(p.dateValidationEvaluateur)}
+                      {dateCloture(p)}
                     </td>
 
                     <td className="py-3.5 px-3 align-middle whitespace-nowrap overflow-hidden">

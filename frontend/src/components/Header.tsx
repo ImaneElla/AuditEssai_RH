@@ -117,6 +117,10 @@ export default function Header() {
           : "Évaluations à Réaliser — Mon Équipe";
       case "formulaire-evaluation":
         return "Fiche Officielle d'Évaluation";
+      case "analyse-ia":
+        return "Analyse IA des évaluations";
+      case "archive":
+        return "Archives des salariés";
       case "retards":
         return isRH
           ? "Centre de Surveillance des Retards (> 2 Jours)"

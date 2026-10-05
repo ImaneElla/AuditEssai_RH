@@ -7,7 +7,6 @@ import {
   Clock, 
   AlertTriangle, 
   CheckCircle2, 
-  UserPlus, 
   Calendar, 
   Mail, 
   ChevronRight, 
@@ -37,10 +36,15 @@ function DashboardRH() {
   const prenomCompte = parametres.profil.prenom || 'Administrateur';
 
   // Key metrics
-  const totalActifs = salaries.filter(s => s.statutEssai === 'EN_COURS' || s.statutEssai === 'RENOUVELEE').length;
-  const periodes3M = periodes.filter(p => (p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS') && p.statut !== 'VALIDEE_RH');
-  const periodes6M = periodes.filter(p => (p.typePeriode === 'SIX_MOIS' || p.typePeriode === 'CINQ_MOIS') && p.statut !== 'VALIDEE_RH');
-  const activeEvaluationsCount = periodes.filter(p => p.statut !== 'VALIDEE_RH' && p.statut !== 'COMPLETEE' && p.statut !== 'RUPTURE').length;
+  const totalTitularises = salaries.filter(s => s.statutEssai === 'CONFIRMEE').length;
+  const totalRuptures = salaries.filter(s => s.statutEssai === 'RUPTURE').length;
+  const totalDecisionsFinales = totalTitularises + totalRuptures;
+  const tauxTitularisation = totalDecisionsFinales
+    ? Math.round((totalTitularises / totalDecisionsFinales) * 100)
+    : 0;
+  const tauxRupture = totalDecisionsFinales
+    ? Math.round((totalRuptures / totalDecisionsFinales) * 100)
+    : 0;
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
 
   const prochaines = periodes
@@ -98,13 +102,13 @@ function DashboardRH() {
 {/* ================================================================
     3. GLOBAL KPI CARDS — PREMIUM LIGHT / RED & BLACK
 ================================================================ */}
-<div className="grid grid-cols-3 lg:grid-cols-3 gap-4">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
   {/* ============================================================
       1 — PÉRIODES ACTIVES
   ============================================================ */}
   <Card
-    onClick={() => navigateTo('salaries')}
+    onClick={() => navigateTo('archive')}
     className="
       group relative overflow-hidden cursor-pointer
       bg-white border border-zinc-200
@@ -152,7 +156,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Périodes actives
+            Total titularisés
           </span>
 
         </div>
@@ -182,7 +186,7 @@ function DashboardRH() {
           leading-none
           text-zinc-950
         ">
-          {totalActifs}
+          {totalTitularises}
         </span>
 
         <span className="
@@ -191,7 +195,7 @@ function DashboardRH() {
           font-medium
           mb-1
         ">
-          collaborateurs actuellement suivis
+          salariés confirmés définitivement
         </span>
 
       </div>
@@ -212,7 +216,7 @@ function DashboardRH() {
           "
         >
           <CheckCircle2 className="w-3 h-3 mr-1" />
-          +{salaries.length - totalActifs} confirmé
+          Décisions RH finalisées
         </Badge>
 
       </div>
@@ -234,7 +238,7 @@ function DashboardRH() {
       2 — PÉRIODES EN COURS (3M & 6M)
   ============================================================ */}
   <Card
-    onClick={() => navigateTo('periodes')}
+    onClick={() => navigateTo('archive')}
     className="
       group relative overflow-hidden cursor-pointer
       bg-white border border-zinc-200
@@ -280,7 +284,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Périodes en cours
+            Total ruptures
           </span>
 
         </div>
@@ -308,7 +312,7 @@ function DashboardRH() {
           leading-none
           text-zinc-950
         ">
-          {activeEvaluationsCount}
+          {totalRuptures}
         </span>
 
         <span className="
@@ -317,7 +321,7 @@ function DashboardRH() {
           font-medium
           mb-1
         ">
-          évaluations (3 mois & 6 mois)
+          salariés en fin de période d’essai
         </span>
 
       </div>
@@ -337,7 +341,7 @@ function DashboardRH() {
           "
         >
           <Clock className="w-3 h-3 mr-1" />
-          {periodes3M.length} en 3M • {periodes6M.length} en 6M
+          Relances automatiquement arrêtées
         </Badge>
 
       </div>
@@ -360,7 +364,7 @@ function DashboardRH() {
       3 — RETARDS & EN RELANCE
   ============================================================ */}
   <Card
-    onClick={() => navigateTo('retards')}
+    onClick={() => navigateTo('archive')}
     className="
       group relative overflow-hidden cursor-pointer
       bg-white
@@ -395,7 +399,7 @@ function DashboardRH() {
             border
             transition-colors duration-300
             ${
-              retards.length > 0
+              totalRuptures > 0
                 ? 'bg-red-50 border-red-100 group-hover:bg-red-600'
                 : 'bg-zinc-50 border-zinc-200 group-hover:bg-zinc-900'
             }
@@ -405,7 +409,7 @@ function DashboardRH() {
               className={`
                 w-5 h-5 transition-colors
                 ${
-                  retards.length > 0
+                  totalRuptures > 0
                     ? 'text-red-600 group-hover:text-white'
                     : 'text-zinc-600 group-hover:text-white'
                 }
@@ -422,7 +426,7 @@ function DashboardRH() {
             uppercase
             text-zinc-600
           ">
-            Évaluations en relance
+            Taux de titularisation
           </span>
 
         </div>
@@ -448,9 +452,9 @@ function DashboardRH() {
           font-black
           tracking-tight
           leading-none
-          ${retards.length > 0 ? 'text-red-600' : 'text-zinc-950'}
+          ${totalRuptures > 0 ? 'text-red-600' : 'text-zinc-950'}
         `}>
-          {retards.length}
+          {tauxTitularisation}%
         </span>
 
         <span className="
@@ -459,14 +463,14 @@ function DashboardRH() {
           font-medium
           mb-1
         ">
-          actions à régulariser
+          des décisions finales
         </span>
 
       </div>
 
       <div className="mt-5">
 
-        {retards.length > 0 ? (
+        {totalRuptures > 0 ? (
 
           <Badge
             className="
@@ -481,7 +485,7 @@ function DashboardRH() {
             "
           >
             <AlertTriangle className="w-3 h-3 mr-1" />
-            À régulariser
+            Taux de rupture : {tauxRupture}%
           </Badge>
 
         ) : (
@@ -498,7 +502,7 @@ function DashboardRH() {
             "
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            À jour
+            Aucune rupture
           </Badge>
 
         )}
