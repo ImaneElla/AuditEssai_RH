@@ -489,14 +489,7 @@ export default function ParametresScreen() {
                       className={inputClass}
                     />
                   </Row>
-                  <Row label="Téléphone">
-                    <input
-                      type="tel"
-                      value={respProfil.phone}
-                      onChange={(e) => setRespProfil({ ...respProfil, phone: e.target.value })}
-                      className={inputClass}
-                    />
-                  </Row>
+              
                   <Row label="Poste">
                     <input
                       type="text"

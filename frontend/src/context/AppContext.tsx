@@ -162,8 +162,6 @@ interface AppContextType {
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
-    poste: string;
     directionId: number;
   }) => void;
   updateResponsable: (
@@ -172,8 +170,7 @@ interface AppContextType {
       firstName: string;
       lastName: string;
       email: string;
-      phone: string;
-      poste: string;
+   
       directionId: number;
     }
   ) => void;
@@ -711,8 +708,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
-    poste: string;
     directionId: number;
   }) => {
     const direction = directions.find(item => item.id === data.directionId);
@@ -735,8 +730,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       firstName: string;
       lastName: string;
       email: string;
-      phone: string;
-      poste: string;
       directionId: number;
     }
   ) => {

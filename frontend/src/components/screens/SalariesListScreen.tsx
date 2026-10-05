@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
@@ -32,7 +32,7 @@ const inputWithIcon =
   "w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none transition-all text-foreground";
 
 const PeriodeLabel = (j: string) =>
-  j === "TROIS_MOIS" || j === "DEUX_MOIS" ? "Bilan 3 mois" : j === "SIX_MOIS" || j === "CINQ_MOIS" ? "Bilan 6 mois" : "Clôturé";
+  j === "TROIS_MOIS" || j === "DEUX_MOIS" ? "Bilan 3 mois" : j === "SIX_MOIS" || j === "CINQ_MOIS" ? "Bilan 6 mois" : "Clá´turé";
 
 const statutLabel = (s: string) =>
   s === "EN_COURS"
@@ -48,7 +48,7 @@ const statutVariant = (s: string): "appleGreen" | "secondary" | "destructive" =>
 
 const formatDateFr = (dateStr: string): string => {
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
+  if (isNaN(d.getTime())) return "â€”";
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   return `${day}-${month}-${d.getFullYear()}`;
@@ -193,7 +193,7 @@ export default function SalariesListScreen() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-foreground tracking-tight">
-            {isRH ? "Salariés en Période d’Essai" : "Mes Salariés Affectés"}
+            {isRH ? "Salariés en Période Période d'Essai" : "Mes Salariés Affectés"}
           </h2>
 
           <p className="text-xs text-muted-foreground">
@@ -201,7 +201,7 @@ export default function SalariesListScreen() {
               ? `Total : ${filteredSalaries.length} collaborateur${
                   filteredSalaries.length > 1 ? "s répertoriés" : " répertorié"
                 }`
-              : `Équipe Gestion de Patrimoine • ${
+              : `équipe Gestion de Patrimoine â€¢ ${
                   filteredSalaries.length
                 } collaborateur${
                   filteredSalaries.length > 1
@@ -277,7 +277,7 @@ export default function SalariesListScreen() {
               <option value="ALL">Toutes les Périodes</option>
               <option value="TROIS_MOIS">Bilan 3 Mois</option>
               <option value="SIX_MOIS">Bilan 6 Mois</option>
-              <option value="TERMINE">Période Clôturée</option>
+              <option value="TERMINE">Période Clá´turée</option>
             </select>
 
             <div className="h-6 w-px bg-border hidden lg:block mx-0.5" />
@@ -326,7 +326,7 @@ export default function SalariesListScreen() {
             <p className="text-sm font-medium">Aucun collaborateur trouvé</p>
 
             <p className="text-xs mt-1">
-              Aucun collaborateur ne correspond aux critères de recherche
+              Aucun collaborateur ne correspond aux critá¨res de recherche
               sélectionnés.
             </p>
           </div>
@@ -428,7 +428,7 @@ export default function SalariesListScreen() {
                             {salarie.responsableNom ? salarie.responsableNom[0] : "R"}
                           </div>
                           <p title={salarie.responsableNom} className="font-medium text-foreground text-xs truncate">
-                            {salarie.responsableNom || "—"}
+                            {salarie.responsableNom || "â€”"}
                           </p>
                         </div>
                       </td>
@@ -631,7 +631,7 @@ export default function SalariesListScreen() {
                       onClick={() => openEvaluation(salarie.id)}
                       className="btn-gradient cursor-pointer text-xs"
                     >
-                      Évaluer
+                      évaluer
                     </Button>
                   </div>
                 </div>
@@ -656,7 +656,7 @@ export default function SalariesListScreen() {
                   Créer un Salarié &amp; Automatiser le Suivi d&apos;Essai
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  L&apos;enregistrement calcule automatiquement les Périodes d&apos;évaluation à 3 mois et 6 mois et programme les envois à 09:00.
+                  L&apos;enregistrement calcule automatiquement les Périodes d&apos;évaluation á  3 mois et 6 mois et programme les envois á  09:00.
                 </p>
               </div>
 
@@ -730,24 +730,7 @@ export default function SalariesListScreen() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Téléphone <span className="text-muted-foreground text-xs">(optionnel)</span>
-                    </label>
-                    <div className="relative">
-                      <Phone
-                        className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"
-                        strokeWidth={1.75}
-                      />
-                      <input
-                        type="text"
-                        placeholder="06 XX XX XX XX"
-                        value={form.phone}
-                        onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                        className={inputWithIcon}
-                      />
-                    </div>
-                  </div>
+                
                 </div>
               </div>
 
@@ -761,21 +744,7 @@ export default function SalariesListScreen() {
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Intitulé du Poste <span className="text-primary">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex : Conseiller Patrimonial Senior"
-                      value={form.poste}
-                      onChange={(e) => setForm((prev) => ({ ...prev, poste: e.target.value }))}
-                      className={inputBase}
-                    />
-                  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Division <span className="text-primary">*</span>
@@ -823,7 +792,7 @@ export default function SalariesListScreen() {
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold text-foreground tracking-tight">
-                      Paramétrage de la Période d&apos;Essai &amp; Calcul des Échéances
+                      Paramétrage de la Période d&apos;Essai &amp; Calcul des échéances
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
                       Convention collective &amp; accords Groupe Premium
@@ -858,9 +827,9 @@ export default function SalariesListScreen() {
                         <span>Periode 1</span>
                         <Badge variant="appleBlue" className="text-[10px]">3 Mois</Badge>
                       </div>
-                      <p className="font-bold text-foreground text-sm font-mono">{calculated3M || "—"}</p>
+                      <p className="font-bold text-foreground text-sm font-mono">{calculated3M || "â€”"}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Mail auto envoyé à <strong className="text-foreground">09:00:00</strong>
+                        Mail auto envoyé á  <strong className="text-foreground">09:00:00</strong>
                       </p>
                     </div>
 
@@ -869,7 +838,7 @@ export default function SalariesListScreen() {
                         <span>Periode 2</span>
                         <Badge variant="applePurple" className="text-[10px]">6 Mois</Badge>
                       </div>
-                      <p className="font-bold text-foreground text-sm font-mono">{calculated6M || "—"}</p>
+                      <p className="font-bold text-foreground text-sm font-mono">{calculated6M || "â€”"}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">
                         Bilan final avant confirmation
                       </p>

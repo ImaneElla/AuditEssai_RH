@@ -6,8 +6,7 @@ import {
   Users, 
   Clock, 
   AlertTriangle, 
-  CheckCircle2, 
-  Calendar, 
+  CheckCircle2,   Calendar, 
   Mail, 
   ChevronRight, 
   ExternalLink

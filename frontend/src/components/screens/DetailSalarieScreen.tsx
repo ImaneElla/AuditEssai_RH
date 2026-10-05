@@ -764,15 +764,6 @@ export default function DetailSalarieScreen() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-foreground mb-1">Téléphone</label>
-                <input
-                  type="text"
-                  value={editFormData.phone}
-                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                  className="w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
-                />
-              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
