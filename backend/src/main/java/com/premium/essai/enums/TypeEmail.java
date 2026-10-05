@@ -1,0 +1,12 @@
+package com.premium.essai.model.enums;
+
+public enum TypeEmail {
+    EMAIL_1_EN_COURS,
+    EMAIL_2_EN_RELANCE,
+    EMAIL_3_EN_RETARD,
+    CONVOCATION_3M,
+    CONVOCATION_6M,
+    RAPPEL_RETARD_J21,
+    ALERTE_CRITIQUE_J7,
+}
+
