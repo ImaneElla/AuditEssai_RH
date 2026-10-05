@@ -117,8 +117,13 @@ export default function Sidebar() {
       <div className={`p-3.5 border-b border-zinc-200/60 dark:border-white/10 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
         {isSidebarCollapsed ? (
           <div onClick={() => navigateTo('dashboard')} className="w-11 h-11 rounded-xl bg-gradient-to-br from-white to-zinc-50 dark:from-[#1c1c1e] dark:to-[#2c2c2e] border border-zinc-200 dark:border-white/10 shadow-sm flex items-center justify-center p-1.5 cursor-pointer hover:border-[#8B0000]/30 hover:shadow-md transition-all">
-            <Image src="/logo-groupe-premium.png" alt="GP" width={36} height={36} className="object-contain" priority />
-          </div>
+<Image 
+  src="/logo-groupe-premium.png" 
+  alt="Logo" 
+  width={300} 
+  height={100} 
+  className="w-full h-auto" // Ensures height scales proportionally with the width
+/>        </div>
         ) : (
           <div className="flex items-center justify-between w-full">
             <div onClick={() => navigateTo('dashboard')} className="p-1 flex items-center cursor-pointer ml-10">

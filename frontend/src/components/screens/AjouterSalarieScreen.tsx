@@ -162,21 +162,8 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1">
-                Téléphone <span className="text-muted-foreground text-xs">(optionnel)</span> 
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" strokeWidth={1.75} />
-                <input
-                  type="text"
-                  placeholder="06 XX XX XX XX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none text-foreground"
-                />
-              </div>
-            </div>
+         
+         
           </div>
         </Card>
 

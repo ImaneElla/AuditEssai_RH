@@ -400,7 +400,7 @@ function DashboardRH() {
             ${
               totalRuptures > 0
                 ? 'bg-red-50 border-red-100 group-hover:bg-red-600'
-                : 'bg-zinc-50 border-zinc-200 group-hover:bg-zinc-900'
+                : 'bg-zinc-50 border-zinc-200 group-hover:bg-red-600'
             }
           `}>
 

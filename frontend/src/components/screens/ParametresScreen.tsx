@@ -100,7 +100,6 @@ export default function ParametresScreen() {
     firstName: currentResponsable?.firstName ?? '',
     lastName:  currentResponsable?.lastName  ?? '',
     email:     currentResponsable?.email     ?? '',
-    phone:     currentResponsable?.phone     ?? '',
     poste:     currentResponsable?.poste     ?? '',
     directionName: currentResponsable?.directionName ?? '',
     directionId:   currentResponsable?.directionId   ?? 1,
@@ -134,7 +133,6 @@ export default function ParametresScreen() {
           firstName:   respProfil.firstName,
           lastName:    respProfil.lastName,
           email:       respProfil.email,
-          phone:       respProfil.phone,
           poste:       respProfil.poste,
           directionId: respProfil.directionId,
         });
@@ -146,7 +144,7 @@ export default function ParametresScreen() {
   };
 
   const tabs: { id: typeof activeTab; label: string; rhOnly?: boolean }[] = [
-   { id: 'profil', label: 'Profil' },
+    { id: 'profil', label: 'Profil' },
     { id: 'emails', label: 'Relances', rhOnly: true },
     { id: 'compte', label: 'Expéditeur', rhOnly: true },
     { id: 'theme', label: 'Thème' },

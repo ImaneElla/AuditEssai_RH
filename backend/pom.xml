@@ -5,15 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.8</version>
+		<version>3.1.0</version>
 		<relativePath/>
 	</parent>
 	
-	<groupId>com.premium</groupId>
-	<artifactId>premium-essai-manager</artifactId>
+    <groupId>com.premium.essai</groupId>	<artifactId>premium-essai-manager</artifactId>
 	<version>1.0.0</version>
 	<name>premium-essai-manager - Imane</name>
-	<description>Gestion Periode Essai Groupe Premium - Fiches 2/5 mois automatique</description>
+	<description>Application RH qui permet de gérer et de suivre les périodes d’essai des salariés.</description>
 	
 	<properties>
 		<java.version>17</java.version>

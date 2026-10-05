@@ -681,7 +681,7 @@ export default function SalariesListScreen() {
                   </h4>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Prénom <span className="text-primary">*</span>
@@ -709,29 +709,29 @@ export default function SalariesListScreen() {
                       className={inputBase}
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
-                      Email Professionnel <span className="text-primary">*</span>
-                    </label>
-                    <div className="relative">
-                      <Mail
-                        className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"
-                        strokeWidth={1.75}
-                      />
-                      <input
-                        type="email"
-                        required
-                        placeholder="prenom.nom@premium.africa"
-                        value={form.email}
-                        onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                        className={`${inputWithIcon} font-mono`}
-                      />
-                    </div>
                   </div>
-
-                
                 </div>
+
+                {/* Email FULL WIDTH */}
+                <div className="w-full">
+                  <label className="block text-xs font-medium text-foreground mb-1.5 w-full">
+                    Email Professionnel <span className="text-primary">*</span>
+                  </label>
+                  <div className="relative w-full">
+                    <Mail
+                      className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      strokeWidth={1.75}
+                    />
+                    <input
+                      type="email"
+                      required
+                      placeholder="prenom.nom@premium.africa"
+                      value={form.email}
+                      onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value.trim().toLowerCase() }))}
+                      className={`${inputWithIcon} font-mono lowercase w-full`}
+                      autoComplete="email"
+                    />
+                  </div>
               </div>
 
               <div className="space-y-4">
