@@ -2,31 +2,42 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { 
-  Users, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle2,   Calendar, 
-  Mail, 
-  ChevronRight, 
-  ExternalLink
+import {
+  Users,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  Calendar,
+  Mail,
+  ChevronRight,
+  ExternalLink,
+  TrendingUp
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import DashboardResponsable from './DashboardResponsable';
-import { text } from 'stream/consumers';
 
 // =========================================================================
 // 1. DASHBOARD RH / ADMIN (SUPERVISION GLOBALE DE TOUT LE SYSTÈME)
 // =========================================================================
 function DashboardRH() {
-  const { 
-    salaries, 
-    periodes, 
-    emails, 
-    navigateTo, 
-    openEmailModal, 
+  const {
+    salaries,
+    periodes,
+    emails,
+    navigateTo,
+    openEmailModal,
     parametres
   } = useApp();
 
@@ -47,14 +58,40 @@ function DashboardRH() {
     : 0;
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
 
-  const prochaines = periodes
-    .filter(p => p.statut !== 'VALIDEE_RH' && p.statut !== 'COMPLETEE' && p.statut !== 'EN_RETARD')
-    .sort((a, b) => new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime())
-    .slice(0, 4);
-
   const periodesAffichees = filterPeriode === 'PRIORITAIRE'
     ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EN_RELANCE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
     : periodes.slice(0, 5);
+
+  // ---------------------------------------------------------------------
+  // Évolution sur 1 an (12 mois de l'année en cours)
+  // Adapte les noms de champs ci-dessous si ton modèle utilise un autre nom
+  // ---------------------------------------------------------------------
+  const getDecisionDate = (s: any): Date | null => {
+    const raw = s.dateDecision || s.dateFinEssai || s.dateEmbauche;
+    const d = raw ? new Date(raw) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+  };
+
+  const currentYear = new Date().getFullYear();
+  const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+  const evolutionAnnuelle = MOIS.map((mois, index) => {
+    const countByStatut = (statut: string) =>
+      salaries.filter(s => {
+        if (s.statutEssai !== statut) return false;
+        const d = getDecisionDate(s);
+        return d !== null && d.getFullYear() === currentYear && d.getMonth() === index;
+      }).length;
+
+    return {
+      mois,
+      titularisation: countByStatut('CONFIRMEE'),
+      ruptures: countByStatut('RUPTURE'),
+    };
+  });
+
+  const totalTituAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.titularisation, 0);
+  const totalRuptAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.ruptures, 0);
 
   const getEmailBadgeConfig = (typeEmail: string) => {
     if (typeEmail === 'EMAIL_1_EN_COURS') {
@@ -74,10 +111,10 @@ function DashboardRH() {
 
   return (
     <div className="space-y-6 font-sans">
-      {/*  Header DRH  */}
+      {/* Header DRH */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-4xl font-bold text-foreground tracking-tight"> 
+          <h2 className="text-xl md:text-4xl font-bold text-foreground tracking-tight">
             Bonjour {prenomCompte}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -86,8 +123,6 @@ function DashboardRH() {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-       
-          
           <Button
             variant="outline"
             onClick={() => navigateTo('periodes')}
@@ -99,432 +134,240 @@ function DashboardRH() {
           </Button>
         </div>
       </div>
-{/* ================================================================
-    3. GLOBAL KPI CARDS — PREMIUM LIGHT / RED & BLACK
-================================================================ */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-  {/* ============================================================
-      1 — PÉRIODES ACTIVES
-  ============================================================ */}
-  <Card
-    onClick={() => navigateTo('archive')}
-    className="
-      group relative overflow-hidden cursor-pointer
-      bg-white border border-zinc-200
-      rounded-2xl p-5
-      shadow-sm
-      transition-all duration-300
-      hover:-translate-y-1 hover:shadow-lg hover:border-red-200
-    "
-  >
-    {/* Décoration bas droite */}
-    <div className="
-      absolute -right-8 -bottom-8
-      w-32 h-32
-      bg-gradient-to-br from-red-50 to-transparent
-      rotate-12
-      transition-transform duration-500
-      group-hover:scale-125
-    " />
+      {/* ================================================================
+          GLOBAL KPI CARDS — PREMIUM LIGHT / RED & BLACK
+      ================================================================ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-    <div className="relative z-10">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-
-        <div className="flex items-center gap-3">
-
-          {/* Icon */}
-          <div className="
-            w-11 h-11 rounded-xl
-            bg-red-50 border border-red-100
-            flex items-center justify-center
-            group-hover:bg-red-600
-            transition-colors duration-300
-          ">
-            <Users
-              className="w-5 h-5 text-red-600 group-hover:text-white transition-colors"
-              strokeWidth={2}
-            />
-          </div>
-
-          <span className="
-            text-[11px]
-            font-bold
-            tracking-[0.12em]
-            uppercase
-            text-zinc-600
-          ">
-            Total titularisés
-          </span>
-
-        </div>
-
-        {/* Arrow */}
-        <div className="
-          w-8 h-8 rounded-full
-          bg-red-50
-          flex items-center justify-center
-          group-hover:bg-red-600
-          transition-colors
-        ">
-          <ChevronRight
-            className="w-4 h-4 text-red-600 group-hover:text-white transition-colors"
-          />
-        </div>
-
-      </div>
-
-      {/* Number */}
-      <div className="flex items-end gap-3">
-
-        <span className="
-          text-4xl
-          font-black
-          tracking-tight
-          leading-none
-          text-zinc-950
-        ">
-          {totalTitularises}
-        </span>
-
-        <span className="
-          text-[11px]
-          text-zinc-500
-          font-medium
-          mb-1
-        ">
-          salariés confirmés définitivement
-        </span>
-
-      </div>
-
-      {/* Status */}
-      <div className="mt-5">
-
-        <Badge
-          className="
-            bg-red-50
-            text-red-600
-            border border-red-100
-            hover:bg-red-100
-            text-[10px]
-            font-semibold
-            px-2.5
-            py-1
-          "
+        {/* 1 — TOTAL TITULARISÉS */}
+        <Card
+          onClick={() => navigateTo('archive')}
+          className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
         >
-          <CheckCircle2 className="w-3 h-3 mr-1" />
-          Décisions RH finalisées
-        </Badge>
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
 
-      </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
+                  <Users className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
+                  Total titularisés
+                </span>
+              </div>
 
-    </div>
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
+              </div>
+            </div>
 
-    {/* Bottom accent */}
-    <div className="
-      absolute bottom-0 right-0
-      w-16 h-1
-      bg-gradient-to-r from-red-600 to-zinc-900
-      rounded-tl-full
-    " />
+            <div className="flex items-end gap-3">
+              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
+                {totalTitularises}
+              </span>
+              <span className="text-[11px] text-zinc-500 font-medium mb-1">
+                salariés confirmés définitivement
+              </span>
+            </div>
 
-  </Card>
-
-
-  {/* ============================================================
-      2 — PÉRIODES EN COURS (3M & 6M)
-  ============================================================ */}
-  <Card
-    onClick={() => navigateTo('archive')}
-    className="
-      group relative overflow-hidden cursor-pointer
-      bg-white border border-zinc-200
-      rounded-2xl p-5
-      shadow-sm
-      transition-all duration-300
-      hover:-translate-y-1 hover:shadow-lg hover:border-red-200
-    "
-  >
-
-    <div className="
-      absolute -right-8 -bottom-8
-      w-32 h-32
-      bg-gradient-to-br from-red-50 to-transparent
-      rotate-12
-      transition-transform duration-500
-      group-hover:scale-125
-    " />
-
-    <div className="relative z-10">
-
-      <div className="flex items-center justify-between mb-5">
-
-        <div className="flex items-center gap-3">
-
-          <div className="
-            w-11 h-11 rounded-xl
-            bg-red-50 border border-red-100
-            flex items-center justify-center
-            group-hover:bg-red-600
-            transition-colors duration-300
-          ">
-            <Clock
-              className="w-5 h-5 text-red-600 group-hover:text-white transition-colors"
-              strokeWidth={2}
-            />
+            <div className="mt-5">
+              <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Décisions RH finalisées
+              </Badge>
+            </div>
           </div>
 
-          <span className="
-            text-[11px]
-            font-bold
-            tracking-[0.12em]
-            uppercase
-            text-zinc-600
-          ">
-            Total ruptures
-          </span>
+          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
+        </Card>
 
-        </div>
-
-        <div className="
-          w-8 h-8 rounded-full
-          bg-red-50
-          flex items-center justify-center
-          group-hover:bg-red-600
-          transition-colors
-        ">
-          <ChevronRight
-            className="w-4 h-4 text-red-600 group-hover:text-white transition-colors"
-          />
-        </div>
-
-      </div>
-
-      <div className="flex items-end gap-3">
-
-        <span className="
-          text-4xl
-          font-black
-          tracking-tight
-          leading-none
-          text-zinc-950
-        ">
-          {totalRuptures}
-        </span>
-
-        <span className="
-          text-[11px]
-          text-zinc-500
-          font-medium
-          mb-1
-        ">
-          salariés en fin de période d’essai
-        </span>
-
-      </div>
-
-      <div className="mt-5">
-
-        <Badge
-          className="
-            bg-red-50
-            text-red-600
-            border border-red-100
-            hover:bg-red-100
-            text-[10px]
-            font-semibold
-            px-2.5
-            py-1
-          "
+        {/* 2 — TOTAL RUPTURES */}
+        <Card
+          onClick={() => navigateTo('archive')}
+          className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
         >
-          <Clock className="w-3 h-3 mr-1" />
-          Relances automatiquement arrêtées
-        </Badge>
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
 
-      </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
+                  <Clock className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
+                  Total ruptures
+                </span>
+              </div>
 
-    </div>
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
+              </div>
+            </div>
 
-    <div className="
-      absolute bottom-0 right-0
-      w-16 h-1
-      bg-gradient-to-r from-red-600 to-zinc-900
-      rounded-tl-full
-    " />
+            <div className="flex items-end gap-3">
+              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
+                {totalRuptures}
+              </span>
+              <span className="text-[11px] text-zinc-500 font-medium mb-1">
+                salariés en fin de période d’essai
+              </span>
+            </div>
 
-  </Card>
-
-
-
-
-  {/* ============================================================
-      3 — RETARDS & EN RELANCE
-  ============================================================ */}
-  <Card
-    onClick={() => navigateTo('archive')}
-    className="
-      group relative overflow-hidden cursor-pointer
-      bg-white
-      border border-zinc-200
-      rounded-2xl p-5
-      shadow-sm
-      transition-all duration-300
-      hover:-translate-y-1 hover:shadow-lg
-      hover:border-red-200
-    "
-  >
-
-    {/* Red warning background */}
-    <div className="
-      absolute -right-8 -bottom-8
-      w-32 h-32
-      bg-gradient-to-br from-red-100 to-transparent
-      rotate-12
-      transition-transform duration-500
-      group-hover:scale-125
-    " />
-
-    <div className="relative z-10">
-
-      <div className="flex items-center justify-between mb-5">
-
-        <div className="flex items-center gap-3">
-
-          <div className={`
-            w-11 h-11 rounded-xl
-            flex items-center justify-center
-            border
-            transition-colors duration-300 bg-red-100  
-            ${
-              totalRuptures > 0
-                ? 'bg-red-50 border-red-100 group-hover:bg-red-600'
-                : ' border-zinc-200 group-hover:bg-red-600'
-            }
-          `}>
-
-            <AlertTriangle
-              className={`
-                w-5 h-5 transition-colors text-red-500              ${
-                  totalRuptures > 0
-                    ? 'text-red-600 group-hover:text-white'
-                    : ' group-hover:text-white'}
-              `}
-              strokeWidth={2}
-            />
-
+            <div className="mt-5">
+              <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
+                <Clock className="w-3 h-3 mr-1" />
+                Relances automatiquement arrêtées
+              </Badge>
+            </div>
           </div>
 
-          <span className="
-            text-[11px]
-            font-bold
-            tracking-[0.12em]
-            uppercase
-            text-zinc-600
-          ">
-            Taux de titularisation
-          </span>
+          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
+        </Card>
 
-        </div>
+        {/* 3 — TAUX DE TITULARISATION */}
+        <Card
+          onClick={() => navigateTo('archive')}
+          className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
+        >
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-100 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
 
-        <div className="
-          w-8 h-8 rounded-full
-          bg-red-50
-          flex items-center justify-center
-          group-hover:bg-red-600
-          transition-colors
-        ">
-          <ChevronRight
-            className="w-4 h-4 text-red-600 group-hover:text-white transition-colors"
-          />
-        </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-colors duration-300 group-hover:bg-red-600 ${
+                    totalRuptures > 0 ? 'bg-red-50 border-red-100' : 'bg-red-100 border-zinc-200'
+                  }`}
+                >
+                  <AlertTriangle
+                    className={`w-5 h-5 transition-colors group-hover:text-white ${
+                      totalRuptures > 0 ? 'text-red-600' : 'text-red-500'
+                    }`}
+                    strokeWidth={2}
+                  />
+                </div>
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
+                  Taux de titularisation
+                </span>
+              </div>
 
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+
+            <div className="flex items-end gap-3">
+              <span
+                className={`text-4xl font-black tracking-tight leading-none ${
+                  totalRuptures > 0 ? 'text-red-600' : 'text-zinc-950'
+                }`}
+              >
+                {tauxTitularisation}%
+              </span>
+              <span className="text-[11px] text-zinc-500 font-medium mb-1">
+                des décisions finales
+              </span>
+            </div>
+
+            <div className="mt-5">
+              {totalRuptures > 0 ? (
+                <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  Taux de rupture : {tauxRupture}%
+                </Badge>
+              ) : (
+                <Badge className="bg-zinc-100 text-zinc-700 border border-zinc-200 text-[10px] font-semibold px-2.5 py-1">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Aucune rupture
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
+        </Card>
       </div>
 
-      <div className="flex items-end gap-3">
-
-        <span className={`
-          text-4xl
-          font-black
-          tracking-tight
-          leading-none
-          ${totalRuptures > 0 ? 'text-red-600' : 'text-zinc-950'}
-        `}>
-          {tauxTitularisation}%
-        </span>
-
-        <span className="
-          text-[11px]
-          text-zinc-500
-          font-medium
-          mb-1
-        ">
-          des décisions finales
-        </span>
-
-      </div>
-
-      <div className="mt-5">
-
-        {totalRuptures > 0 ? (
-
-          <Badge
-            className="
-              bg-red-50
-              text-red-600
-              border border-red-100
-              hover:bg-red-100
-              text-[10px]
-              font-semibold
-              px-2.5
-              py-1
-            "
-          >
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            Taux de rupture : {tauxRupture}%
-          </Badge>
-
-        ) : (
-
-          <Badge
-            className="
-              bg-zinc-100
-              text-zinc-700
-              border border-zinc-200
-              text-[10px]
-              font-semibold
-              px-2.5
-              py-1
-            "
-          >
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            Aucune rupture
-          </Badge>
-
-        )}
-
-      </div>
-
-    </div>
-
-    <div className="
-      absolute bottom-0 right-0
-      w-16 h-1
-      bg-gradient-to-r from-red-600 to-zinc-900
-      rounded-tl-full
-    " />
-
-  </Card>
-
-</div>
-
-      {/*  4. Main Section: 2 Columns Layout */}
+      {/* Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Période d'Évaluation */}
+        {/* Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Section 1: Période d'Évaluation en Cours */}
+
+          {/* ===================== GRAPHIQUE ÉVOLUTION ANNUELLE ===================== */}
+          <Card className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-red-600" strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground tracking-tight">Évolution Annuelle</h3>
+                  <p className="text-[11px] text-muted-foreground">Titularisation vs Ruptures sur l&apos;année {currentYear}</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-normal">
+                <Calendar className="w-3 h-3 mr-1" />
+                1 an
+              </Badge>
+            </div>
+
+            <div className="p-4">
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={evolutionAnnuelle} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+                    <XAxis
+                      dataKey="mois"
+                      tick={{ fontSize: 12, fill: '#52525b' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12, fill: '#52525b' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e4e4e7', fontSize: 12 }} />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: 12 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="titularisation"
+                      name="Titularisation"
+                      stroke="#f59e0b"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#f59e0b' }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="ruptures"
+                      name="Ruptures"
+                      stroke="#dc2626"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#dc2626' }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <p className="text-center text-[11px] text-muted-foreground mt-2">
+                Bilan {currentYear} : <span className="text-amber-600 font-medium">{totalTituAnnee} titularisation{totalTituAnnee > 1 ? 's' : ''}</span>
+                {' '}•{' '}
+                <span className="text-red-600 font-medium">{totalRuptAnnee} rupture{totalRuptAnnee > 1 ? 's' : ''}</span>
+              </p>
+            </div>
+          </Card>
+
+          {/* Section: Période d'Évaluation en Cours */}
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-3">
@@ -573,8 +416,8 @@ function DashboardRH() {
                   const is3M = periode.typePeriode === 'TROIS_MOIS' || periode.typePeriode === 'DEUX_MOIS';
 
                   return (
-                    <div 
-                      key={periode.id} 
+                    <div
+                      key={periode.id}
                       className={`p-3.5 transition-colors flex items-center justify-between gap-3 ${
                         isOverdue ? 'bg-zinc-50/80 hover:bg-zinc-100/60' : 'hover:bg-secondary/40'
                       }`}
@@ -585,13 +428,13 @@ function DashboardRH() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span 
+                            <span
                               onClick={() => navigateTo('detail-salarie', { salarieId: periode.salarieId })}
                               className="font-semibold text-foreground text-xs hover:underline cursor-pointer truncate tracking-tight"
                             >
                               {periode.salarieNom}
                             </span>
-                            <Badge 
+                            <Badge
                               variant="secondary"
                               className="text-[10px] hidden sm:inline-flex font-normal"
                             >
@@ -625,95 +468,50 @@ function DashboardRH() {
               )}
             </div>
           </Card>
-          
 
-          <Card className="overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center gap-2.5 bg-secondary/20">
-              <div className="w-8 h-8 rounded-xl bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center shadow-2xs">
-                <Calendar className="w-4 h-4" strokeWidth={1.75} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground tracking-tight">Prochaines Échéances (3M / 6M)</h3>
-                <p className="text-[11px] text-muted-foreground">Périodes à venir, calculées automatiquement</p>
-              </div>
+          {/* Planning des Relances Automatiques */}
+          <Card className="p-4 bg-gradient-to-br from-red-50/50 via-white to-zinc-50 border border-red-100 rounded-2xl space-y-3 shadow-xs">
+            <div className="flex items-center gap-2 font-bold text-xs text-red-700">
+              <Mail className="w-4 h-4 text-red-600" />
+              <span>Planning des Relances Automatiques</span>
             </div>
 
-            <div className="divide-y divide-border/60">
-              {prochaines.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground">Aucune échéance à venir.</div>
-              ) : (
-                prochaines.map((p) => {
-                  const jours = Math.ceil((new Date(p.dateEcheance).getTime() - Date.now()) / 86400000);
-                  const is3M = p.typePeriode === 'TROIS_MOIS' || p.typePeriode === 'DEUX_MOIS';
-                  return (
-                    <div key={p.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/40 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center font-medium text-xs shrink-0 bg-zinc-100 text-zinc-700 border border-zinc-200/80">
-                          {is3M ? '3M' : '6M'}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-semibold text-foreground text-xs tracking-tight truncate block">{p.salarieNom}</span>
-                          <p className="text-[11px] text-muted-foreground truncate">{p.salariePoste}</p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-[11px] font-mono text-foreground block">{p.dateEcheance}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {jours > 0 ? `dans ${jours} j` : jours === 0 ? "aujourd'hui" : `il y a ${Math.abs(jours)} j`}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                <div>
+                  <span className="font-bold text-zinc-900 block">Email 1 (J-21)</span>
+                  <span className="text-[10px] text-muted-foreground">Notification initiale</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                  En cours
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                <div>
+                  <span className="font-bold text-zinc-900 block">Email 2 (J-14)</span>
+                  <span className="text-[10px] text-muted-foreground">Relance intermédiaire</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200">
+                  En relance
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
+                <div>
+                  <span className="font-bold text-zinc-900 block">Email 3 (J-7)</span>
+                  <span className="text-[10px] text-muted-foreground">Relance urgente / retard</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
+                  En retard
+                </Badge>
+              </div>
             </div>
           </Card>
-          {/* Planning des Relances Automatiques */}
-<Card className="p-4 bg-gradient-to-br from-red-50/50 via-white to-zinc-50 border border-red-100 rounded-2xl space-y-3 shadow-xs">
-  <div className="flex items-center gap-2 font-bold text-xs text-red-700">
-    <Mail className="w-4 h-4 text-red-600" />
-    <span>Planning des Relances Automatiques</span>
-  </div>
-
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-      <div>
-        <span className="font-bold text-zinc-900 block">Email 1 (J-21)</span>
-        <span className="text-[10px] text-muted-foreground">Notification initiale</span>
-      </div>
-      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-        En cours
-      </Badge>
-    </div>
-
-    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-      <div>
-        <span className="font-bold text-zinc-900 block">Email 2 (J-14)</span>
-        <span className="text-[10px] text-muted-foreground">Relance intermédiaire</span>
-      </div>
-      <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200">
-        En relance
-      </Badge>
-    </div>
-
-    <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-      <div>
-        <span className="font-bold text-zinc-900 block">Email 3 (J-7)</span>
-        <span className="text-[10px] text-muted-foreground">Relance urgente / retard</span>
-      </div>
-      <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
-        En retard
-      </Badge>
-    </div>
-  </div>
-</Card>
         </div>
 
-        {/* ── Right Column (1 Col): Cycle Emails & Journal ── */}
+        {/* Right Column (1 Col): Journal des Emails */}
         <div className="space-y-6">
-          {/* Automatic Email Schedule Legend */}
-       
-
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-2">
@@ -782,13 +580,11 @@ function DashboardRH() {
   );
 }
 
-
 // ============================================================================
-// 3. MAIN DASHBOARD
+// 2. MAIN DASHBOARD
 // ============================================================================
 
 export default function DashboardAdmin() {
-
   const { currentRole } = useApp();
 
   if (currentRole === "RESPONSABLE") {
