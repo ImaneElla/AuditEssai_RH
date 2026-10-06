@@ -79,7 +79,7 @@ interface AppContextType {
   evaluations: EvaluationDetail[]; emails: HistoriqueEmail[]; notifications: NotificationItem[];
   addSalarie: (data: any) => void; updateSalarie: (id: number, data: any) => void;
   deleteSalarie: (id: number) => void; restaurerSalarie: (id: number) => void;
-  addResponsable: (data: { firstName: string; lastName: string; email: string; directionId: number; }) => void;
+  addResponsable: (data: { firstName: string; lastName: string; email: string; directionId: number; phone?: string; poste?: string; }) => void;
   updateResponsable: (id: number, data: any) => void; deleteResponsable: (id: number) => boolean;
   relancerRetard: (id: number) => void; relancerTousLesRetards: () => void;
   submitEvaluation: (data: any) => void; validerDecisionRH: (id: number, decision: DecisionPeriode, motif: string) => void;
@@ -116,15 +116,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const openAddSalarieModal = () => setIsAddSalarieModalOpen(true);
   const closeAddSalarieModal = () => setIsAddSalarieModalOpen(false);
-  const toggleSidebar = () => setIsSidebarCollapsed(prev =>!prev);
+  const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
 
   // LOAD ONLY FROM LOCALSTORAGE - NO FALLBACK TO FAKE DATA
   React.useEffect(() => {
-    if (typeof window!== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         const saved = (key: string) => {
           const v = localStorage.getItem(key);
-          return v? JSON.parse(v) : [];
+          return v ? JSON.parse(v) : [];
         };
         setSalariesList(saved('gp_salaries'));
         setPeriodesList(saved('gp_periodes'));
@@ -158,10 +158,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // STATUS ENGINE (same logic as before)
   React.useEffect(() => {
     if (!isLoaded) return;
-    const today = new Date(); today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     setPeriodesList(prev => prev.map(p => {
       if (p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH' || p.statut === 'RUPTURE') return p;
-      const echeance = new Date(p.dateEcheance); echeance.setHours(0,0,0,0);
+      const echeance = new Date(p.dateEcheance); echeance.setHours(0, 0, 0, 0);
       const diffDays = Math.round((echeance.getTime() - today.getTime()) / 86400000);
       let newStatut = p.statut; let newJoursRetard = p.joursRetard;
       if (diffDays < 0) { newStatut = 'EN_RETARD'; newJoursRetard = Math.abs(diffDays); }
@@ -169,18 +169,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       else if (diffDays <= 14) { newStatut = 'EN_RELANCE'; newJoursRetard = undefined; }
       else if (diffDays <= 21) { newStatut = 'EN_COURS'; newJoursRetard = undefined; }
       if (newStatut === p.statut && newJoursRetard === p.joursRetard) return p;
-      return {...p, statut: newStatut, joursRetard: newJoursRetard };
+      return { ...p, statut: newStatut, joursRetard: newJoursRetard };
     }));
   }, [isLoaded]);
 
   React.useEffect(() => {
-    if (typeof document!== 'undefined') {
+    if (typeof document !== 'undefined') {
       document.documentElement.classList.toggle('dark', parametres.theme === 'dark' || (parametres.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
     }
   }, [parametres.theme]);
 
   const updateParametres = (newParams: Partial<Parametres>) => {
-    setParametres(prev => ({...prev,...newParams }));
+    setParametres(prev => ({ ...prev, ...newParams }));
     showToast("Paramètres mis à jour.");
   };
 
@@ -194,12 +194,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setCurrentRole = (role: UserRole) => {
     setCurrentRoleState(role);
     setCurrentScreen('dashboard');
-    showToast(role === 'RESPONSABLE'? `Connecté: ${currentResponsable? `${currentResponsable.firstName} ${currentResponsable.lastName}` : 'Responsable'}` : "Connecté: DRH");
+    showToast(role === 'RESPONSABLE' ? `Connecté: ${currentResponsable ? `${currentResponsable.firstName} ${currentResponsable.lastName}` : 'Responsable'}` : "Connecté: DRH");
   };
 
-  const salaries = useMemo(() => currentRole === 'RESPONSABLE' && currentResponsable? salariesList.filter(s => s.responsableId === currentResponsable.id) : salariesList, [salariesList, currentRole, currentResponsable]);
+  const salaries = useMemo(() => currentRole === 'RESPONSABLE' && currentResponsable ? salariesList.filter(s => s.responsableId === currentResponsable.id) : salariesList, [salariesList, currentRole, currentResponsable]);
   const archives = useMemo(() => salaries.filter(s => s.actif === false), [salaries]);
-  const periodes = useMemo(() => currentRole === 'RESPONSABLE' && currentResponsable? periodesList.filter(p => p.responsableId === currentResponsable.id) : periodesList, [periodesList, currentRole, currentResponsable]);
+  const periodes = useMemo(() => currentRole === 'RESPONSABLE' && currentResponsable ? periodesList.filter(p => p.responsableId === currentResponsable.id) : periodesList, [periodesList, currentRole, currentResponsable]);
 
   const showToast = (msg: string) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 4000); };
 
@@ -219,36 +219,86 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addSalarie = (data: any) => {
     const direction = directions.find(d => d.id === data.directionId);
     const responsable = responsables.find(r => r.id === data.responsableId);
-    const newId = salariesList.length > 0? Math.max(...salariesList.map(s => s.id)) + 1 : 1;
+    const newId = salariesList.length > 0 ? Math.max(...salariesList.map(s => s.id)) + 1 : 1;
     const dateFinPrevisionnelle = addMonthsToDate(data.dateEmbauche, 3);
     const matricule = data.matricule || `GP-${new Date().getFullYear()}-${String(newId).padStart(3, '0')}`;
-    const newSalarie: Salarie = { id: newId, matricule, nom: data.lastName, prenom: data.firstName, firstName: data.firstName, lastName: data.lastName, email: data.email, phone: data.phone, poste: data.poste, dateIntegration: data.dateEmbauche, dateEmbauche: data.dateEmbauche, dureeInitialeMois: 3, dateFinPrevisionnelle, directionId: data.directionId, directionName: direction?.name || '', responsableId: data.responsableId, responsableNom: responsable? `${responsable.firstName} ${responsable.lastName}` : '', statutEssai: 'EN_COURS', PeriodeActuel: 'TROIS_MOIS', bloqueEmails: false, actif: true };
-    setSalariesList(prev => [newSalarie,...prev]);
-    const periode3M: PeriodeEvaluation = { id: periodesList.length > 0? Math.max(...periodesList.map(p => p.id)) + 1 : 1, salarieId: newId, salarieNom: `${data.firstName} ${data.lastName}`, salarieEmail: data.email, salariePoste: data.poste, responsableId: data.responsableId, responsableNom: responsable? `${responsable.firstName} ${responsable.lastName}` : '', responsableEmail: responsable? responsable.email : '', directionName: direction?.name || '', typePeriode: 'TROIS_MOIS', numeroPeriode: 1, dateEcheance: dateFinPrevisionnelle, dateDeclenchementEmail: dateFinPrevisionnelle, heureDeclenchement: '09:00:00', statut: 'EN_COURS', decisionFinale: 'EN_ATTENTE', tokenAccesSalarie: `sec-eval-${newId}-3m-${Date.now().toString(36)}`, emailsEnvoyes: {} };
-    setPeriodesList(prev => [periode3M,...prev]);
+    const newSalarie: Salarie = {
+      id: newId,
+      matricule,
+      nom: data.lastName,
+      prenom: data.firstName,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone ?? '',
+      poste: data.poste ?? '',
+      dateIntegration: data.dateEmbauche,
+      dateEmbauche: data.dateEmbauche,
+      dureeInitialeMois: 3,
+      dateFinPrevisionnelle,
+      directionId: data.directionId,
+      directionName: direction?.name || '',
+      responsableId: data.responsableId,
+      responsableNom: responsable ? `${responsable.firstName} ${responsable.lastName}` : '',
+      statutEssai: 'EN_COURS',
+      PeriodeActuel: 'TROIS_MOIS',
+      bloqueEmails: false,
+      actif: true
+    };
+    setSalariesList(prev => [newSalarie, ...prev]);
+    const periode3M: PeriodeEvaluation = {
+      id: periodesList.length > 0 ? Math.max(...periodesList.map(p => p.id)) + 1 : 1,
+      salarieId: newId,
+      salarieNom: `${data.firstName} ${data.lastName}`,
+      salarieEmail: data.email,
+      salariePoste: data.poste,
+      responsableId: data.responsableId,
+      responsableNom: responsable ? `${responsable.firstName} ${responsable.lastName}` : '',
+      responsableEmail: responsable ? responsable.email : '',
+      directionName: direction?.name || '',
+      typePeriode: 'TROIS_MOIS',
+      numeroPeriode: 1,
+      dateEcheance: dateFinPrevisionnelle,
+      dateDeclenchementEmail: dateFinPrevisionnelle,
+      heureDeclenchement: '09:00:00',
+      statut: 'EN_COURS',
+      decisionFinale: 'EN_ATTENTE',
+      tokenAccesSalarie: `sec-eval-${newId}-3m-${Date.now().toString(36)}`,
+      emailsEnvoyes: {}
+    };
+    setPeriodesList(prev => [periode3M, ...prev]);
     showToast(`Salarié ${data.firstName} ${data.lastName} créé.`);
     setSelectedSalarieId(newId); navigateTo('detail-salarie', { salarieId: newId });
   };
 
-  const updateSalarie = (id: number, data: any) => { setSalariesList(prev => prev.map(s => s.id === id? {...s,...data, nom: data.lastName, prenom: data.firstName } : s)); showToast('Salarié mis à jour.'); };
-  const deleteSalarie = (id: number) => { setSalariesList(prev => prev.filter(s => s.id!== id)); setPeriodesList(prev => prev.filter(p => p.salarieId!== id)); showToast('Salarié supprimé.'); };
-  const restaurerSalarie = (id: number) => { setSalariesList(prev => prev.map(s => s.id === id? {...s, actif: true } : s)); showToast('Salarié restauré.'); };
+  const updateSalarie = (id: number, data: any) => { setSalariesList(prev => prev.map(s => s.id === id ? { ...s, ...data, nom: data.lastName, prenom: data.firstName } : s)); showToast('Salarié mis à jour.'); };
+  const deleteSalarie = (id: number) => { setSalariesList(prev => prev.filter(s => s.id !== id)); setPeriodesList(prev => prev.filter(p => p.salarieId !== id)); showToast('Salarié supprimé.'); };
+  const restaurerSalarie = (id: number) => { setSalariesList(prev => prev.map(s => s.id === id ? { ...s, actif: true } : s)); showToast('Salarié restauré.'); };
 
-  const addResponsable = (data: { firstName: string; lastName: string; email: string; directionId: number; }) => {
+  const addResponsable = (data: { firstName: string; lastName: string; email: string; directionId: number; phone?: string; poste?: string; }) => {
     const direction = directions.find(item => item.id === data.directionId);
-    const newId = responsables.length > 0? Math.max(...responsables.map(r => r.id)) + 1 : 1;
-    const newResponsable: Responsable = { id: newId,...data, directionName: direction?.name?? '' };
+    const newId = responsables.length > 0 ? Math.max(...responsables.map(r => r.id)) + 1 : 1;
+    const newResponsable: Responsable = {
+      id: newId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      directionId: data.directionId,
+      phone: data.phone ?? '',
+      poste: data.poste ?? '',
+      directionName: direction?.name ?? ''
+    };
     setResponsables(prev => [...prev, newResponsable]); setSelectedResponsableId(newId); showToast(`Responsable ${data.firstName} ${data.lastName} ajouté.`);
   };
   const updateResponsable = (id: number, data: any) => {
     const direction = directions.find(item => item.id === data.directionId);
-    setResponsables(prev => prev.map(r => r.id === id? {...r,...data, directionName: direction?.name?? r.directionName } : r));
-    setSalariesList(prev => prev.map(s => s.responsableId === id? {...s, responsableNom: `${data.firstName} ${data.lastName}` } : s));
+    setResponsables(prev => prev.map(r => r.id === id ? { ...r, ...data, directionName: direction?.name ?? r.directionName } : r));
+    setSalariesList(prev => prev.map(s => s.responsableId === id ? { ...s, responsableNom: `${data.firstName} ${data.lastName}` } : s));
     showToast('Responsable mis à jour.');
   };
   const deleteResponsable = (id: number) => {
     if (salariesList.some(s => s.responsableId === id)) { showToast('Impossible: salariés affectés.'); return false; }
-    setResponsables(prev => prev.filter(r => r.id!== id)); showToast('Responsable supprimé.'); return true;
+    setResponsables(prev => prev.filter(r => r.id !== id)); showToast('Responsable supprimé.'); return true;
   };
 
   const relancerRetard = (periodeId: number) => { showToast('Relance envoyée.'); };
@@ -256,8 +306,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const submitEvaluation = (data: any) => { showToast('Évaluation enregistrée.'); navigateTo('periodes'); };
   const validerDecisionRH = (id: number, decision: DecisionPeriode, motif: string) => { showToast(`Décision ${decision} validée.`); };
   const triggerCronBatch0900 = () => { showToast('Batch exécuté.'); return { emailsCount: 0, retardsCount: 0 }; };
-  const markNotificationAsRead = (id: number) => setNotifications(prev => prev.map(n => n.id === id? {...n, estLue: true } : n));
-  const markAllNotificationsAsRead = () => setNotifications(prev => prev.map(n => ({...n, estLue: true })));
+  const markNotificationAsRead = (id: number) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, estLue: true } : n));
+  const markAllNotificationsAsRead = () => setNotifications(prev => prev.map(n => ({ ...n, estLue: true })));
 
   return (
     <AppContext.Provider value={{

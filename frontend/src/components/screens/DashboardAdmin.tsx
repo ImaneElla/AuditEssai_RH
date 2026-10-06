@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import DashboardResponsable from './DashboardResponsable';
+import { text } from 'stream/consumers';
 
 // =========================================================================
 // 1. DASHBOARD RH / ADMIN (SUPERVISION GLOBALE DE TOUT LE SYSTÈME)
@@ -396,22 +397,20 @@ function DashboardRH() {
             w-11 h-11 rounded-xl
             flex items-center justify-center
             border
-            transition-colors duration-300
+            transition-colors duration-300 bg-red-100  
             ${
               totalRuptures > 0
                 ? 'bg-red-50 border-red-100 group-hover:bg-red-600'
-                : 'bg-zinc-50 border-zinc-200 group-hover:bg-red-600'
+                : ' border-zinc-200 group-hover:bg-red-600'
             }
           `}>
 
             <AlertTriangle
               className={`
-                w-5 h-5 transition-colors
-                ${
+                w-5 h-5 transition-colors text-red-500              ${
                   totalRuptures > 0
                     ? 'text-red-600 group-hover:text-white'
-                    : 'text-zinc-600 group-hover:text-white'
-                }
+                    : ' group-hover:text-white'}
               `}
               strokeWidth={2}
             />
