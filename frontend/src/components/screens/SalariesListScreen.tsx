@@ -8,11 +8,9 @@ import {
   Clock,
   Building2,
   Grid2X2,
-  List,
   CalendarDays,
   UserRound,
   Mail,
-  Phone,
   Zap,
   CheckCircle2,
   X,
@@ -32,7 +30,11 @@ const inputWithIcon =
   "w-full pl-9 pr-3 py-2 text-xs bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none transition-all text-foreground";
 
 const PeriodeLabel = (j: string) =>
-  j === "TROIS_MOIS" || j === "DEUX_MOIS" ? "Bilan 3 mois" : j === "SIX_MOIS" || j === "CINQ_MOIS" ? "Bilan 6 mois" : "Clá´turé";
+  j === "TROIS_MOIS" || j === "DEUX_MOIS"
+    ? "Bilan 3 mois"
+    : j === "SIX_MOIS" || j === "CINQ_MOIS"
+    ? "Bilan 6 mois"
+    : "Clôturé";
 
 const statutLabel = (s: string) =>
   s === "EN_COURS"
@@ -48,7 +50,7 @@ const statutVariant = (s: string): "appleGreen" | "secondary" | "destructive" =>
 
 const formatDateFr = (dateStr: string): string => {
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "â€”";
+  if (isNaN(d.getTime())) return "—";
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   return `${day}-${month}-${d.getFullYear()}`;
@@ -89,7 +91,7 @@ export default function SalariesListScreen() {
     email: "",
     phone: "",
     poste: "",
-    divisionId: divisions[0]?.id || 1,
+    divisionName: "",
     responsableId: responsables[0]?.id || 1,
     dateEmbauche: new Date().toISOString().slice(0, 10),
   });
@@ -122,15 +124,24 @@ export default function SalariesListScreen() {
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const divisionName = form.divisionName.trim();
+
     if (
       !form.firstName ||
       !form.lastName ||
       !form.email ||
       !form.poste ||
+      !divisionName ||
       !form.dateEmbauche
     ) {
       return;
     }
+
+    // Si le texte correspond à une division existante, on récupère son id
+    const matched = divisions.find(
+      (d) => d.name.toLowerCase() === divisionName.toLowerCase()
+    );
 
     addSalarie({
       firstName: form.firstName,
@@ -140,9 +151,10 @@ export default function SalariesListScreen() {
       poste: form.poste,
       dateEmbauche: form.dateEmbauche,
       dureeInitialeMois: 6,
-      directionId: form.divisionId,
+      directionId: matched?.id, // undefined si nouvelle division
+      directionName: matched?.name ?? divisionName,
       responsableId: form.responsableId,
-    });
+    } as Parameters<typeof addSalarie>[0]);
 
     closeAddSalarieModal();
   };
@@ -190,10 +202,11 @@ export default function SalariesListScreen() {
 
   return (
     <div className="space-y-5 font-sans">
+      {/* ===================== HEADER ===================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-foreground tracking-tight">
-            {isRH ? "Salariés en Période Période d'Essai" : "Mes Salariés Affectés"}
+            {isRH ? "Salariés en Période d'Essai" : "Mes Salariés Affectés"}
           </h2>
 
           <p className="text-xs text-muted-foreground">
@@ -201,7 +214,7 @@ export default function SalariesListScreen() {
               ? `Total : ${filteredSalaries.length} collaborateur${
                   filteredSalaries.length > 1 ? "s répertoriés" : " répertorié"
                 }`
-              : `équipe Gestion de Patrimoine â€¢ ${
+              : `équipe Gestion de Patrimoine • ${
                   filteredSalaries.length
                 } collaborateur${
                   filteredSalaries.length > 1
@@ -223,6 +236,7 @@ export default function SalariesListScreen() {
         )}
       </div>
 
+      {/* ===================== FILTRES ===================== */}
       <Card className="p-4 space-y-3">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
@@ -277,7 +291,7 @@ export default function SalariesListScreen() {
               <option value="ALL">Toutes les Périodes</option>
               <option value="TROIS_MOIS">Bilan 3 Mois</option>
               <option value="SIX_MOIS">Bilan 6 Mois</option>
-              <option value="TERMINE">Période Clá´turée</option>
+              <option value="TERMINE">Période Clôturée</option>
             </select>
 
             <div className="h-6 w-px bg-border hidden lg:block mx-0.5" />
@@ -318,6 +332,7 @@ export default function SalariesListScreen() {
         </div>
       </Card>
 
+      {/* ===================== LISTE / GRILLE ===================== */}
       {filteredSalaries.length === 0 ? (
         <Card className="py-12">
           <div className="text-center text-muted-foreground">
@@ -326,7 +341,7 @@ export default function SalariesListScreen() {
             <p className="text-sm font-medium">Aucun collaborateur trouvé</p>
 
             <p className="text-xs mt-1">
-              Aucun collaborateur ne correspond aux critá¨res de recherche
+              Aucun collaborateur ne correspond aux critères de recherche
               sélectionnés.
             </p>
           </div>
@@ -412,11 +427,17 @@ export default function SalariesListScreen() {
                               className="w-3.5 h-3.5 text-muted-foreground shrink-0"
                               strokeWidth={1.75}
                             />
-                            <p title={salarie.poste} className="font-semibold text-foreground text-xs truncate">
+                            <p
+                              title={salarie.poste}
+                              className="font-semibold text-foreground text-xs truncate"
+                            >
                               {salarie.poste}
                             </p>
                           </div>
-                          <p title={salarie.directionName} className="text-[11px] text-muted-foreground truncate pl-5 mt-0.5">
+                          <p
+                            title={salarie.directionName}
+                            className="text-[11px] text-muted-foreground truncate pl-5 mt-0.5"
+                          >
                             {salarie.directionName}
                           </p>
                         </div>
@@ -427,8 +448,11 @@ export default function SalariesListScreen() {
                           <div className="w-6 h-6 rounded-full bg-secondary border border-border/80 flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
                             {salarie.responsableNom ? salarie.responsableNom[0] : "R"}
                           </div>
-                          <p title={salarie.responsableNom} className="font-medium text-foreground text-xs truncate">
-                            {salarie.responsableNom || "â€”"}
+                          <p
+                            title={salarie.responsableNom}
+                            className="font-medium text-foreground text-xs truncate"
+                          >
+                            {salarie.responsableNom || "—"}
                           </p>
                         </div>
                       </td>
@@ -436,11 +460,15 @@ export default function SalariesListScreen() {
                       <td className="py-3.5 px-4 align-middle whitespace-nowrap overflow-hidden font-mono text-[11px]">
                         <div className="space-y-0.5">
                           <div className="truncate text-foreground">
-                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">Entrée:</span>
+                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">
+                              Entrée:
+                            </span>
                             {salarie.dateEmbauche}
                           </div>
                           <div className="truncate text-muted-foreground">
-                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">Terme:</span>
+                            <span className="text-muted-foreground font-sans text-[10px] uppercase font-semibold mr-1.5">
+                              Terme:
+                            </span>
                             {salarie.dateFinPrevisionnelle}
                           </div>
                         </div>
@@ -558,7 +586,7 @@ export default function SalariesListScreen() {
 
                     <div className="rounded-xl bg-secondary/50 border border-border/50 p-3">
                       <p className="text-[9px] uppercase tracking-wide text-muted-foreground mb-1">
-                        Periode actif
+                        Période actuelle
                       </p>
 
                       <Badge
@@ -631,7 +659,7 @@ export default function SalariesListScreen() {
                       onClick={() => openEvaluation(salarie.id)}
                       className="btn-gradient cursor-pointer text-xs"
                     >
-                      évaluer
+                      Évaluer
                     </Button>
                   </div>
                 </div>
@@ -641,6 +669,7 @@ export default function SalariesListScreen() {
         </div>
       )}
 
+      {/* ===================== MODAL AJOUT SALARIÉ ===================== */}
       {isAddSalarieModalOpen && (
         <div
           onClick={closeAddSalarieModal}
@@ -656,7 +685,9 @@ export default function SalariesListScreen() {
                   Créer un Salarié &amp; Automatiser le Suivi d&apos;Essai
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  L&apos;enregistrement calcule automatiquement les Périodes d&apos;évaluation á  3 mois et 6 mois et programme les envois á  09:00.
+                  L&apos;enregistrement calcule automatiquement les Périodes
+                  d&apos;évaluation à 3 mois et 6 mois et programme les envois à
+                  09:00.
                 </p>
               </div>
 
@@ -671,6 +702,7 @@ export default function SalariesListScreen() {
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-5">
+              {/* ============ 1. IDENTITÉ ============ */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
                   <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
@@ -681,7 +713,8 @@ export default function SalariesListScreen() {
                   </h4>
                 </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Prénom + Nom */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Prénom <span className="text-primary">*</span>
@@ -709,38 +742,68 @@ export default function SalariesListScreen() {
                       className={inputBase}
                     />
                   </div>
-                  </div>
                 </div>
 
-                {/* Email FULL WIDTH */}
-                <div className="w-full">
-                  <label className="block text-xs font-medium text-foreground mb-1.5 w-full">
-                    Email Professionnel <span className="text-primary">*</span>
-                  </label>
-                  <div className="relative w-full">
-                    <Mail
-                      className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                      strokeWidth={1.75}
-                    />
-                    <input
-                      type="email"
-                      required
-                      placeholder="prenom.nom@premium.africa"
-                      value={form.email}
-                      onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value.trim().toLowerCase() }))}
-                      className={`${inputWithIcon} font-mono lowercase w-full`}
-                      autoComplete="email"
-                    />
+                {/* Email + Responsable (toujours côte à côte, même sur mobile) */}
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="min-w-0">
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Email Professionnel <span className="text-primary">*</span>
+                    </label>
+                    <div className="relative w-full">
+                      <Mail
+                        className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        strokeWidth={1.75}
+                      />
+                      <input
+                        type="email"
+                        required
+                        placeholder="prenom.nom@premium.africa"
+                        value={form.email}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            email: e.target.value.trim().toLowerCase(),
+                          }))
+                        }
+                        className={`${inputWithIcon} font-mono lowercase truncate`}
+                        autoComplete="email"
+                      />
+                    </div>
                   </div>
+
+                  <div className="min-w-0">
+                    <label className="block text-xs font-medium text-foreground mb-1">
+                      Responsable <span className="text-primary">*</span>
+                    </label>
+                    <select
+                      value={form.responsableId}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          responsableId: Number(e.target.value),
+                        }))
+                      }
+                      className={`${inputBase} cursor-pointer truncate`}
+                    >
+                      {responsables.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.firstName} {r.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
+              {/* ============ 2. AFFECTATION ============ */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
                   <div className="w-6 h-6 rounded-lg bg-secondary text-foreground flex items-center justify-center font-bold text-xs">
                     2
                   </div>
                   <h4 className="text-xs font-semibold text-foreground tracking-tight">
-                    Affectation Métier &amp; Manager Référent
+                    Affectation Métier &amp; Poste
                   </h4>
                 </div>
 
@@ -749,42 +812,46 @@ export default function SalariesListScreen() {
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Division <span className="text-primary">*</span>
                     </label>
-                    <select
-                      value={form.divisionId}
+                    <input
+                      type="text"
+                      required
+                      list="divisions-list"
+                      placeholder="Ex : Gestion de Patrimoine"
+                      value={form.divisionName}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, divisionId: Number(e.target.value) }))
+                        setForm((prev) => ({
+                          ...prev,
+                          divisionName: e.target.value,
+                        }))
                       }
-                      className={`${inputBase} cursor-pointer`}
-                    >
+                      className={inputBase}
+                    />
+                    <datalist id="divisions-list">
                       {divisions.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
+                        <option key={d.id} value={d.name} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
-                      Responsable <span className="text-primary">*</span>
+                      Intitulé du poste <span className="text-primary">*</span>
                     </label>
-                    <select
-                      value={form.responsableId}
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex : Analyste Financier"
+                      value={form.poste}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, responsableId: Number(e.target.value) }))
+                        setForm((prev) => ({ ...prev, poste: e.target.value }))
                       }
-                      className={`${inputBase} cursor-pointer`}
-                    >
-                      {responsables.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.firstName} {r.lastName} ({r.poste})
-                        </option>
-                      ))}
-                    </select>
+                      className={inputBase}
+                    />
                   </div>
                 </div>
               </div>
 
+              {/* ============ 3. PARAMÉTRAGE ============ */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
                   <div className="w-6 h-6 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
@@ -809,7 +876,9 @@ export default function SalariesListScreen() {
                       type="date"
                       required
                       value={form.dateEmbauche}
-                      onChange={(e) => setForm((prev) => ({ ...prev, dateEmbauche: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, dateEmbauche: e.target.value }))
+                      }
                       className={`${inputBase} font-mono`}
                     />
                   </div>
@@ -818,27 +887,36 @@ export default function SalariesListScreen() {
                 <div className="p-4 rounded-2xl bg-secondary/40 border border-border space-y-3">
                   <div className="flex items-center gap-2 text-xs font-semibold text-primary">
                     <Zap className="w-4 h-4" strokeWidth={1.75} />
-                    <span>Calculateur Automatique de Periode Groupe Premium</span>
+                    <span>Calculateur Automatique de Période Groupe Premium</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div className="p-3 rounded-xl bg-card border border-border shadow-2xs">
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                        <span>Periode 1</span>
-                        <Badge variant="appleBlue" className="text-[10px]">3 Mois</Badge>
+                        <span>Période 1</span>
+                        <Badge variant="appleBlue" className="text-[10px]">
+                          3 Mois
+                        </Badge>
                       </div>
-                      <p className="font-bold text-foreground text-sm font-mono">{calculated3M || "â€”"}</p>
+                      <p className="font-bold text-foreground text-sm font-mono">
+                        {calculated3M || "—"}
+                      </p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Mail auto envoyé á  <strong className="text-foreground">09:00:00</strong>
+                        Mail auto envoyé à{" "}
+                        <strong className="text-foreground">09:00:00</strong>
                       </p>
                     </div>
 
                     <div className="p-3 rounded-xl bg-card border border-border shadow-2xs">
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                        <span>Periode 2</span>
-                        <Badge variant="applePurple" className="text-[10px]">6 Mois</Badge>
+                        <span>Période 2</span>
+                        <Badge variant="applePurple" className="text-[10px]">
+                          6 Mois
+                        </Badge>
                       </div>
-                      <p className="font-bold text-foreground text-sm font-mono">{calculated6M || "â€”"}</p>
+                      <p className="font-bold text-foreground text-sm font-mono">
+                        {calculated6M || "—"}
+                      </p>
                       <p className="text-[10px] text-muted-foreground mt-1">
                         Bilan final avant confirmation
                       </p>
@@ -846,12 +924,16 @@ export default function SalariesListScreen() {
                   </div>
 
                   <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-1.5 border-t border-border/60">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-apple-green" strokeWidth={2} />
+                    <CheckCircle2
+                      className="w-3.5 h-3.5 text-apple-green"
+                      strokeWidth={2}
+                    />
                     <span>Détection automatique des retards.</span>
                   </div>
                 </div>
               </div>
 
+              {/* ============ BOUTONS ============ */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                 <Button
                   type="button"

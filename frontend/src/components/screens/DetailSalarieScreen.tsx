@@ -92,8 +92,6 @@ export default function DetailSalarieScreen() {
     firstName: salarie?.firstName || '',
     lastName: salarie?.lastName || '',
     email: salarie?.email || '',
-    phone: salarie?.phone || '',
-    poste: salarie?.poste || '',
     directionName: salarie?.directionName || '',
     responsableNom: salarie?.responsableNom || ''
   });
@@ -215,8 +213,6 @@ export default function DetailSalarieScreen() {
                 firstName: salarie.firstName,
                 lastName: salarie.lastName,
                 email: salarie.email,
-                phone: salarie.phone,
-                poste: salarie.poste,
                 directionName: salarie.directionName,
                 responsableNom: salarie.responsableNom,
               });
@@ -293,10 +289,6 @@ export default function DetailSalarieScreen() {
                 <span className="flex items-center gap-1">
                   <Mail className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
                   {salarie.email}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-                  {salarie.phone}
                 </span>
               </div>
             </div>

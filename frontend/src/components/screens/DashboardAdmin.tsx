@@ -8,10 +8,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Calendar,
-  Mail,
   ChevronRight,
-  ExternalLink,
-  TrendingUp
+  TrendingUp,
+  PlusCircle,
+  ClipboardList,
+  Download,
+  Eye
 } from 'lucide-react';
 import {
   LineChart,
@@ -35,9 +37,7 @@ function DashboardRH() {
   const {
     salaries,
     periodes,
-    emails,
     navigateTo,
-    openEmailModal,
     parametres
   } = useApp();
 
@@ -62,10 +62,7 @@ function DashboardRH() {
     ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EN_RELANCE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
     : periodes.slice(0, 5);
 
-  // ---------------------------------------------------------------------
-  // Évolution sur 1 an (12 mois de l'année en cours)
-  // Adapte les noms de champs ci-dessous si ton modèle utilise un autre nom
-  // ---------------------------------------------------------------------
+
   const getDecisionDate = (s: any): Date | null => {
     const raw = s.dateDecision || s.dateFinEssai || s.dateEmbauche;
     const d = raw ? new Date(raw) : null;
@@ -93,20 +90,56 @@ function DashboardRH() {
   const totalTituAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.titularisation, 0);
   const totalRuptAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.ruptures, 0);
 
-  const getEmailBadgeConfig = (typeEmail: string) => {
-    if (typeEmail === 'EMAIL_1_EN_COURS') {
-      return { label: 'Email 1 (J-21) • En cours', class: 'bg-blue-50 text-blue-700 border-blue-200' };
-    }
-    if (typeEmail === 'EMAIL_2_EN_RELANCE') {
-      return { label: 'Email 2 (J-14) • En relance', class: 'bg-amber-50 text-amber-800 border-amber-200' };
-    }
-    if (typeEmail === 'EMAIL_3_EN_RETARD' || typeEmail === 'RAPPEL_RETARD_J2') {
-      return { label: 'Email 3 (J-7) • En retard', class: 'bg-rose-50 text-rose-700 border-rose-200' };
-    }
-    if (typeEmail === 'CONFIRMATION_RH') {
-      return { label: 'Validation RH', class: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
-    }
-    return { label: typeEmail.replace(/_/g, ' '), class: 'bg-zinc-100 text-zinc-700 border-zinc-200' };
+  // ---------------------------------------------------------------------
+  // Mini calendrier du mois + date du jour
+  // ---------------------------------------------------------------------
+  const today = new Date();
+  const dateDuJour = today.toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const moisCourant = today.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const calYear = today.getFullYear();
+  const calMonth = today.getMonth();
+  const joursDuMois = new Date(calYear, calMonth + 1, 0).getDate();
+  const decalage = (new Date(calYear, calMonth, 1).getDay() + 6) % 7; // lundi = 0
+
+  const joursEcheances = new Set(
+    periodes
+      .map(p => new Date(p.dateEcheance))
+      .filter(d => !Number.isNaN(d.getTime()) && d.getFullYear() === calYear && d.getMonth() === calMonth)
+      .map(d => d.getDate())
+  );
+
+  const cellulesCalendrier: (number | null)[] = [
+    ...Array(decalage).fill(null),
+    ...Array.from({ length: joursDuMois }, (_, i) => i + 1),
+  ];
+
+  // ---------------------------------------------------------------------
+  // Export CSV des périodes (Actions rapides)
+  // ---------------------------------------------------------------------
+  const exporterRapport = () => {
+    const entetes = ['Salarié', 'Poste', 'Responsable', 'Type', 'Statut', 'Échéance'];
+    const lignes = periodes.map(p => [
+      p.salarieNom,
+      p.salariePoste,
+      p.responsableNom,
+      p.typePeriode,
+      p.statut,
+      p.dateEcheance,
+    ]);
+
+    const csv = [entetes, ...lignes]
+      .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport-periodes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -114,6 +147,9 @@ function DashboardRH() {
       {/* Header DRH */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <p suppressHydrationWarning className="text-[11px] font-semibold text-red-700 capitalize mb-1">
+            {dateDuJour}
+          </p>
           <h2 className="text-xl md:text-4xl font-bold text-foreground tracking-tight">
             Bonjour {prenomCompte}
           </h2>
@@ -292,10 +328,9 @@ function DashboardRH() {
 
       {/* Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols) */}
-        <div className="lg:col-span-2 space-y-6">
 
-          {/* ===================== GRAPHIQUE ÉVOLUTION ANNUELLE ===================== */}
+        {/* Left Column (2 Cols): Graphique */}
+        <div className="lg:col-span-2 space-y-6">
           <Card className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
               <div className="flex items-center gap-3">
@@ -304,7 +339,9 @@ function DashboardRH() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground tracking-tight">Évolution Annuelle</h3>
-                  <p className="text-[11px] text-muted-foreground">Titularisation vs Ruptures sur l&apos;année {currentYear}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Titularisation vs Ruptures sur l&apos;année {currentYear}
+                  </p>
                 </div>
               </div>
               <Badge variant="outline" className="text-[10px] font-normal">
@@ -360,49 +397,45 @@ function DashboardRH() {
               </div>
 
               <p className="text-center text-[11px] text-muted-foreground mt-2">
-                Bilan {currentYear} : <span className="text-amber-600 font-medium">{totalTituAnnee} titularisation{totalTituAnnee > 1 ? 's' : ''}</span>
+                Bilan {currentYear} :{' '}
+                <span className="text-amber-600 font-medium">
+                  {totalTituAnnee} titularisation{totalTituAnnee > 1 ? 's' : ''}
+                </span>
                 {' '}•{' '}
-                <span className="text-red-600 font-medium">{totalRuptAnnee} rupture{totalRuptAnnee > 1 ? 's' : ''}</span>
+                <span className="text-red-600 font-medium">
+                  {totalRuptAnnee} rupture{totalRuptAnnee > 1 ? 's' : ''}
+                </span>
               </p>
             </div>
           </Card>
+        </div>
 
-          {/* Section: Période d'Évaluation en Cours */}
+        {/* Right Column (1 Col): Période d'Évaluation */}
+        <div className="space-y-6">
           <Card className="overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
-              <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold text-foreground tracking-tight">
-                  Période d&apos;Évaluation en Cours (3M / 6M)
-                </h3>
-                <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
-                  <button
-                    onClick={() => setFilterPeriode('TOUS')}
-                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      filterPeriode === 'TOUS' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Tous
-                  </button>
-                  <button
-                    onClick={() => setFilterPeriode('PRIORITAIRE')}
-                    className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                      filterPeriode === 'PRIORITAIRE' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Prioritaires {retards.length > 0 && `(${retards.length})`}
-                  </button>
-                </div>
-              </div>
+              <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                Période d&apos;Évaluation
+              </h3>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateTo('periodes')}
-                className="text-primary hover:text-primary text-xs font-medium cursor-pointer"
-              >
-                <span>Tout afficher ({periodes.length})</span>
-                <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
-              </Button>
+              <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
+                <button
+                  onClick={() => setFilterPeriode('TOUS')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    filterPeriode === 'TOUS' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Tous
+                </button>
+                <button
+                  onClick={() => setFilterPeriode('PRIORITAIRE')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    filterPeriode === 'PRIORITAIRE' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Prioritaires {retards.length > 0 && `(${retards.length})`}
+                </button>
+              </div>
             </div>
 
             <div className="divide-y divide-border/60">
@@ -413,7 +446,7 @@ function DashboardRH() {
               ) : (
                 periodesAffichees.map((periode) => {
                   const isOverdue = periode.statut === 'EN_RETARD';
-                  const is3M = periode.typePeriode === 'TROIS_MOIS' || periode.typePeriode === 'DEUX_MOIS';
+                  const is3M = periode.typePeriode === 'TROIS_MOIS';
 
                   return (
                     <div
@@ -440,11 +473,6 @@ function DashboardRH() {
                             >
                               {is3M ? 'Période 1 (3 mois)' : 'Période 2 (6 mois)'}
                             </Badge>
-                            {isOverdue && (
-                              <Badge variant="destructive" className="text-[10px]">
-                                +{periode.joursRetard}j retard
-                              </Badge>
-                            )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
                             {periode.salariePoste} • Resp : <strong className="text-primary font-medium">{periode.responsableNom}</strong>
@@ -467,111 +495,21 @@ function DashboardRH() {
                 })
               )}
             </div>
-          </Card>
 
-          {/* Planning des Relances Automatiques */}
-          <Card className="p-4 bg-gradient-to-br from-red-50/50 via-white to-zinc-50 border border-red-100 rounded-2xl space-y-3 shadow-xs">
-            <div className="flex items-center gap-2 font-bold text-xs text-red-700">
-              <Mail className="w-4 h-4 text-red-600" />
-              <span>Planning des Relances Automatiques</span>
-            </div>
+            {/* Footer (maintenant À L'INTÉRIEUR de la Card) */}
+            <div className="p-4 border-t border-border flex items-center justify-between bg-secondary/20">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateTo('periodes')
+              }
+                className="flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Eye className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                Voir Toutes les Périodes
+              </Button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-                <div>
-                  <span className="font-bold text-zinc-900 block">Email 1 (J-21)</span>
-                  <span className="text-[10px] text-muted-foreground">Notification initiale</span>
-                </div>
-                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                  En cours
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-                <div>
-                  <span className="font-bold text-zinc-900 block">Email 2 (J-14)</span>
-                  <span className="text-[10px] text-muted-foreground">Relance intermédiaire</span>
-                </div>
-                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-200">
-                  En relance
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-zinc-200/80 shadow-2xs">
-                <div>
-                  <span className="font-bold text-zinc-900 block">Email 3 (J-7)</span>
-                  <span className="text-[10px] text-muted-foreground">Relance urgente / retard</span>
-                </div>
-                <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
-                  En retard
-                </Badge>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Right Column (1 Col): Journal des Emails */}
-        <div className="space-y-6">
-          <Card className="overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-zinc-100 border border-zinc-200/80 text-zinc-700 flex items-center justify-center shadow-2xs">
-                  <Mail className="w-3.5 h-3.5" strokeWidth={1.75} />
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-foreground tracking-tight">
-                    Journal des Emails Automatiques
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground">
-                    Historique des envois selon le statut
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="divide-y divide-border/60 max-h-[540px] overflow-y-auto">
-              {emails.slice(0, 6).map((mail) => {
-                const config = getEmailBadgeConfig(mail.typeEmail);
-
-                return (
-                  <div
-                    key={mail.id}
-                    onClick={() => openEmailModal(mail)}
-                    className="p-3.5 hover:bg-secondary/40 transition-colors cursor-pointer space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[9px] font-medium px-2 py-0.5 rounded border ${config.class}`}>
-                        {config.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-muted-foreground">
-                        {mail.heureEnvoi}
-                      </span>
-                    </div>
-
-                    <p className="text-xs font-medium text-foreground tracking-tight line-clamp-1">
-                      {mail.objet}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                      <span className="truncate max-w-[170px]">
-                        À : <strong className="text-foreground/80 font-medium">{mail.destinataireNom}</strong>
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEmailModal(mail);
-                        }}
-                        className="h-6 px-1.5 text-[10px] text-zinc-500 hover:text-foreground cursor-pointer bg-red-50"
-                      >
-                        <span>Voir</span>
-                        <ExternalLink className="w-2.5 h-2.5 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+              <AlertTriangle className="w-4 h-4 text-red-600" strokeWidth={2} />
             </div>
           </Card>
         </div>
