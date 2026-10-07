@@ -70,3 +70,5 @@ application-secret.yml
 *.swp
 *.swo
 *~
+# Environment Variables
+.env

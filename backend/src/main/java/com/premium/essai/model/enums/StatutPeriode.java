@@ -1,9 +1,10 @@
 package com.premium.essai.model.enums;
 
 public enum StatutPeriode {
+    PLANIFIEE,
     EN_COURS,
-    EN_RELANCE,
-    EN_RETARD,
-    COMPLETEE,
-    FIN_PERIODE,
+    VALIDE,
+    ROMPU,
+    RENOUVELE,
+    TERMINE
 }

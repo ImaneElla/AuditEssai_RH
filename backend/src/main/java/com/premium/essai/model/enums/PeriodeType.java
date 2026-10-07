@@ -1,4 +1,4 @@
-package com.premium.essai.enums;
+package com.premium.essai.model.enums;
 
 public enum PeriodeType {
     TROIS_MOIS,
