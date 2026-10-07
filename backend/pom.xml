@@ -42,6 +42,13 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!-- OPENAPI -->
+        <dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.3.0</version>
+</dependency>
+
         <!-- FLYWAY -->
         <dependency>
             <groupId>org.flywaydb</groupId>
