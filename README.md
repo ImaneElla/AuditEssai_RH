@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Deployment-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
-  <img src="https://img.shields.io/badge/Backend-Spring%20Boot%203%20%7C%20PostgreSQL-FF0000?style=for-the-badge&logo=springboot&logoColor=white" />
+  <img src="https://img.shields.io/badge/Backend-Spring%20Boot%203%20%7C%20PostgreSQL-000000?style=for-the-badge&logo=springboot&logoColor=white" />
   <img src="https://img.shields.io/badge/Frontend-Next.js%2014%20%7C%20Bun%20%7C%20TailwindCSS-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/API%20Doc-Swagger%20%2F%20OpenAPI%203.0-FF0000?style=for-the-badge&logo=swagger&logoColor=white" />
-  <img src="https://img.shields.io/badge/Stage-2025%2F2026-FF0000?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/API%20Doc-Swagger%20%2F%20OpenAPI%203.0-000000?style=for-the-badge&logo=swagger&logoColor=white" />
+  <img src="https://img.shields.io/badge/Deployment-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+  <img src="https://img.shields.io/badge/Stage-2025%2F2026-000000?style=for-the-badge" />
 </p>
 
 ---
