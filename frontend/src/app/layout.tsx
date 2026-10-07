@@ -3,7 +3,7 @@ import { AppProvider } from "@/context/AppContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Premium RH • Gestion des Périodes d'Essai",
+  title: "Audit Essai • Groupe Premium",
   description: "Plateforme de gestion et suivi des périodes d'essai du Groupe Premium.",
 };
 
