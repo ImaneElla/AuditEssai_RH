@@ -15,4 +15,4 @@
  * 200:
  * description: OK
  */
-export async function GET(req:Request,{params}:{params:{id:string}}){return Response.json({id:params.id})}
+export async function GET(req:Request,{params}:{params: Promise<{ id: string }>}){return Response.json({id:(await params).id})}
