@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="PremiumBannerr.png" alt="AuditEssai RH Banner" width="100%" />
+  <img src="PremiumBanner.png" alt="AuditEssai RH Banner" width="100%" />
 </p>
 
 <p align="center">
