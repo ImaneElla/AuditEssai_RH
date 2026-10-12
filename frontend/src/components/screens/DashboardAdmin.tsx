@@ -47,6 +47,7 @@ function DashboardRH() {
   const prenomCompte = parametres.profil.prenom || 'Administrateur';
 
   // Key metrics
+  const totalEnCours = salaries.filter(s => s.actif !== false && (s.statutEssai === 'EN_COURS' || s.statutEssai === 'RENOUVELEE')).length;
   const totalTitularises = salaries.filter(s => s.statutEssai === 'CONFIRMEE').length;
   const totalRuptures = salaries.filter(s => s.statutEssai === 'RUPTURE').length;
   const totalDecisionsFinales = totalTitularises + totalRuptures;
@@ -174,7 +175,50 @@ function DashboardRH() {
       {/* ================================================================
           GLOBAL KPI CARDS — PREMIUM LIGHT / RED & BLACK
       ================================================================ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* 0 — SALARIÉS EN COURS */}
+        <Card
+          onClick={() => navigateTo('salaries')}
+          className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
+        >
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-300">
+                  <Users className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
+                 Total Global
+                </span>
+              </div>
+
+              <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                <ChevronRight className="w-4 h-4 text-red-600 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+
+            <div className="flex items-end gap-3">
+              <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
+                {totalEnCours}
+              </span>
+              <span className="text-[11px] text-zinc-500 font-medium mb-1">
+                en période d&apos;essai active
+              </span>
+            </div>
+
+            <div className="mt-5">
+              <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
+                <Clock className="w-3 h-3 mr-1" />
+                Périodes 3M &amp; 6M
+              </Badge>
+            </div>
+          </div>
+
+          <div className="absolute bottom-0 right-0 w-16 h-1 bg-gradient-to-r from-red-600 to-zinc-900 rounded-tl-full" />
+        </Card>
 
         {/* 1 — TOTAL TITULARISÉS */}
         <Card
