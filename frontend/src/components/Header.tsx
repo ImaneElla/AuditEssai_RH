@@ -14,6 +14,8 @@ import {
   HelpCircle,
   LogOut,
   Check,
+  Sparkles,
+  Database
 } from "lucide-react";
 
 
@@ -39,6 +41,8 @@ export default function Header() {
     toggleSidebar,
     parametres,
     currentResponsable,
+    isDemoMode,
+    toggleDemoMode,
   } = useApp();
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -215,6 +219,38 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+
+          {/* TOGGLE MOCK DATA / PRÉSENTATION */}
+          <button
+            onClick={toggleDemoMode}
+            type="button"
+            className={`
+              h-9 px-3 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs border
+              ${isDemoMode
+                ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                : "bg-secondary/70 text-muted-foreground border-border/80 hover:text-foreground hover:bg-secondary"
+              }
+            `}
+            title={isDemoMode ? "Désactiver les données de test (Revenir aux données réelles)" : "Activer les données de démo pour présentation"}
+          >
+            {isDemoMode ? (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                <span className="hidden sm:inline">Mode Démo :</span>
+                <span className="font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider text-[10px] bg-amber-200/80 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">
+                  Actif
+                </span>
+              </>
+            ) : (
+              <>
+                <Database className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="hidden sm:inline">Données réelles</span>
+                <span className="text-[10px] font-semibold bg-zinc-200/60 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-400">
+                  Vide / Réel
+                </span>
+              </>
+            )}
+          </button>
 
           <div className="relative" ref={notifMenuRef}>
             <button

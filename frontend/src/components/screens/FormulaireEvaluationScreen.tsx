@@ -18,6 +18,7 @@ import {
   qseItems,
   type CriterionItem,
 } from '@/lib/evaluationCriteria';
+import AIAnalysisModule, { type EvaluationData } from './AIAnalysisModule';
 
 // ============================================================================
 // Types & static data
@@ -270,6 +271,40 @@ export default function FormulaireEvaluationScreen() {
       ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1)
       : '—';
   const moyenneNum = allScores.length > 0 ? Number(moyenneGlobale) : 0;
+
+  // Données transmises au module IA (24 critères + commentaires + appréciations)
+  const liveEvaluationData: EvaluationData = {
+    salarieName: `${prenom} ${nom}`.trim() || 'Collaborateur',
+    poste: poste || 'Poste non renseigné',
+    criteres: [
+      ...competencesProItems.map((item) => ({
+        nom: item.label,
+        note: scoresCompetences[item.id] !== undefined ? `${scoresCompetences[item.id]}/5` : 'Non évalué',
+        commentaire: commentairesCompetences[item.id] || '',
+      })),
+      ...aptitudesPersoItems.map((item) => ({
+        nom: item.label,
+        note: scoresAptitudes[item.id] !== undefined ? `${scoresAptitudes[item.id]}/5` : 'Non évalué',
+        commentaire: commentairesAptitudes[item.id] || '',
+      })),
+      ...qseItems.map((item) => ({
+        nom: item.label,
+        note: scoresQSE[item.id] !== undefined ? `${scoresQSE[item.id]}/5` : 'Non évalué',
+        commentaire: commentairesQSE[item.id] || '',
+      })),
+    ],
+    appreciationGenerale,
+    pointsForts,
+    axesAmelioration,
+  };
+
+  const handleApplyAISuggestions = (pfText: string, axesText: string, syntheseText: string) => {
+    if (pfText) setPointsForts(pfText);
+    if (axesText) setAxesAmelioration(axesText);
+    if (syntheseText && !recommandationCommentaire) {
+      setRecommandationCommentaire(syntheseText);
+    }
+  };
 
   // ---- Handlers -----------------------------------------------------------------
   const handleSubmit = (e?: React.FormEvent) => {
@@ -792,6 +827,18 @@ export default function FormulaireEvaluationScreen() {
               </div>
             </div>
           </div>
+
+          {/* ============================================================= */}
+          {/* MODULE ASSISTANT IA (3 POINTS & SYNTHÈSE AUTOMATISÉE)         */}
+          {/* ============================================================= */}
+          {!isReadOnly && (
+            <div className="print:hidden">
+              <AIAnalysisModule
+                data={liveEvaluationData}
+                onApplyToForm={handleApplyAISuggestions}
+              />
+            </div>
+          )}
 
           {/* ============================================================= */}
           {/* SECTION 4: Recommandation                                     */}

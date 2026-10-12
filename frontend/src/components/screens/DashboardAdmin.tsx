@@ -13,9 +13,13 @@ import {
   PlusCircle,
   ClipboardList,
   Download,
-  Eye
+  Eye,
+  Activity,
+  Award
 } from 'lucide-react';
 import {
+  AreaChart,
+  Area,
   LineChart,
   Line,
   XAxis,
@@ -38,7 +42,8 @@ function DashboardRH() {
     salaries,
     periodes,
     navigateTo,
-    parametres
+    parametres,
+    isDemoMode
   } = useApp();
 
   const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('PRIORITAIRE');
@@ -73,20 +78,38 @@ function DashboardRH() {
   const currentYear = new Date().getFullYear();
   const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-  const evolutionAnnuelle = MOIS.map((mois, index) => {
-    const countByStatut = (statut: string) =>
-      salaries.filter(s => {
-        if (s.statutEssai !== statut) return false;
-        const d = getDecisionDate(s);
-        return d !== null && d.getFullYear() === currentYear && d.getMonth() === index;
-      }).length;
 
-    return {
-      mois,
-      titularisation: countByStatut('CONFIRMEE'),
-      ruptures: countByStatut('RUPTURE'),
-    };
-  });
+  const DEMO_EVOLUTION = [
+    { mois: 'Jan', titularisation: 3, ruptures: 1 },
+    { mois: 'Fév', titularisation: 2, ruptures: 2 },
+    { mois: 'Mar', titularisation: 3, ruptures: 1 },
+    { mois: 'Avr', titularisation: 1, ruptures: 0 },
+    { mois: 'Mai', titularisation: 3, ruptures: 1 },
+    { mois: 'Juin', titularisation: 1, ruptures: 0 },
+    { mois: 'Juil', titularisation: 2, ruptures: 1 },
+    { mois: 'Août', titularisation: 3, ruptures: 1 },
+    { mois: 'Sep', titularisation: 2, ruptures: 0 },
+    { mois: 'Oct', titularisation: 1, ruptures: 1 },
+    { mois: 'Nov', titularisation: 0, ruptures: 1 },
+    { mois: 'Déc', titularisation: 1, ruptures: 0 },
+  ];
+
+  const evolutionAnnuelle = isDemoMode
+    ? DEMO_EVOLUTION
+    : MOIS.map((mois, index) => {
+        const countByStatut = (statut: string) =>
+          salaries.filter(s => {
+            if (s.statutEssai !== statut) return false;
+            const d = getDecisionDate(s);
+            return d !== null && d.getFullYear() === currentYear && d.getMonth() === index;
+          }).length;
+
+        return {
+          mois,
+          titularisation: countByStatut('CONFIRMEE'),
+          ruptures: countByStatut('RUPTURE'),
+        };
+      });
 
   const totalTituAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.titularisation, 0);
   const totalRuptAnnee = evolutionAnnuelle.reduce((sum, m) => sum + m.ruptures, 0);
@@ -177,9 +200,9 @@ function DashboardRH() {
       ================================================================ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        {/* 0 — SALARIÉS EN COURS */}
+        {/* 0 — TOTAL GLOBAL (DÉCISIONS TRAITÉES) */}
         <Card
-          onClick={() => navigateTo('salaries')}
+          onClick={() => navigateTo('archive')}
           className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
         >
           <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-gradient-to-br from-red-50 to-transparent rotate-12 transition-transform duration-500 group-hover:scale-125" />
@@ -191,7 +214,7 @@ function DashboardRH() {
                   <Users className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
                 </div>
                 <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                 Total Global
+                  TOTAL GLOBAL
                 </span>
               </div>
 
@@ -202,17 +225,17 @@ function DashboardRH() {
 
             <div className="flex items-end gap-3">
               <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
-                {totalEnCours}
+                {totalDecisionsFinales}
               </span>
               <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                en période d&apos;essai active
+                décisions finalisées ({totalTitularises} titu + {totalRuptures} rupt)
               </span>
             </div>
 
             <div className="mt-5">
               <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
-                <Clock className="w-3 h-3 mr-1" />
-                Périodes 3M &amp; 6M
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                {totalEnCours} périodes d’essai en cours
               </Badge>
             </div>
           </div>
@@ -373,83 +396,152 @@ function DashboardRH() {
       {/* Main Section: 2 Columns Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left Column (2 Cols): Graphique */}
+        {/* Left Column (2 Cols): Graphique Ultra-Design */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
+          <Card className="overflow-hidden rounded-2xl border border-zinc-200/90 dark:border-white/10 bg-white dark:bg-card shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-zinc-50/70 via-white to-red-50/20 dark:from-zinc-900/40 dark:to-zinc-900/10">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-red-600" strokeWidth={2} />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white flex items-center justify-center shadow-xs">
+                  <Activity className="w-5 h-5" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground tracking-tight">Évolution Annuelle</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    Titularisation vs Ruptures sur l&apos;année {currentYear}
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight">
+                      Dynamique Annuelle des Décisions
+                    </h3>
+                    <span className="text-[10px] font-semibold bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 px-2 py-0.5 rounded-full border border-red-200/60">
+                      {currentYear}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Comparatif mensuel : Titularisations confirmées vs Ruptures de contrat
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-[10px] font-normal">
-                <Calendar className="w-3 h-3 mr-1" />
-                1 an
-              </Badge>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold">
+                  <Award className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{totalTituAnnee} Titularisés</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 text-rose-800 dark:text-rose-300 text-[11px] font-semibold">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>{totalRuptAnnee} Ruptures</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-4">
-              <div className="h-[260px] w-full">
+            <div className="p-4 sm:p-5">
+              <div className="h-[280px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={evolutionAnnuelle} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+                  <AreaChart data={evolutionAnnuelle} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      {/* Gradient Titularisation (Teal / Emerald) */}
+                      <linearGradient id="gradientTitularisation" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.45} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      </linearGradient>
+                      {/* Gradient Rupture (Red / Rose) */}
+                      <linearGradient id="gradientRuptures" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.45} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" dark-stroke="#27272a" vertical={false} />
+
                     <XAxis
                       dataKey="mois"
-                      tick={{ fontSize: 12, fill: '#52525b' }}
-                      axisLine={false}
+                      tick={{ fontSize: 11, fill: '#71717a', fontWeight: 500 }}
+                      axisLine={{ stroke: '#f4f4f5' }}
                       tickLine={false}
                     />
                     <YAxis
+                      domain={[0, 4]}
+                      ticks={[0, 1, 2, 3, 4]}
                       allowDecimals={false}
-                      tick={{ fontSize: 12, fill: '#52525b' }}
+                      tick={{ fontSize: 11, fill: '#71717a', fontWeight: 500 }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e4e4e7', fontSize: 12 }} />
+
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const titu = Math.round(Number(payload.find(p => p.dataKey === 'titularisation')?.value ?? 0));
+                          const rupt = Math.round(Number(payload.find(p => p.dataKey === 'ruptures')?.value ?? 0));
+                          return (
+                            <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl p-3 text-xs min-w-[170px] space-y-2">
+                              <p className="font-bold text-zinc-900 dark:text-zinc-100 border-b border-zinc-100 dark:border-zinc-800 pb-1.5 flex items-center justify-between">
+                                <span>{label} {currentYear}</span>
+                                <span className="text-[10px] text-zinc-400 font-normal">Mois complet</span>
+                              </p>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400">
+                                  <span className="flex items-center gap-1.5 font-medium">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                                    Titularisations :
+                                  </span>
+                                  <span className="font-bold text-sm">{titu}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-rose-700 dark:text-rose-400">
+                                  <span className="flex items-center gap-1.5 font-medium">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                                    Ruptures :
+                                  </span>
+                                  <span className="font-bold text-sm">{rupt}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+
                     <Legend
                       verticalAlign="top"
                       align="right"
                       iconType="circle"
-                      wrapperStyle={{ fontSize: 12 }}
+                      iconSize={8}
+                      wrapperStyle={{ paddingBottom: '16px', fontSize: '11px', fontWeight: 600 }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="titularisation"
-                      name="Titularisation"
-                      stroke="#f59e0b"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: '#f59e0b' }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
+
+                    <Area
                       type="monotone"
                       dataKey="ruptures"
                       name="Ruptures"
-                      stroke="#dc2626"
-                      strokeWidth={2.5}
-                      dot={{ r: 4, fill: '#dc2626' }}
-                      activeDot={{ r: 6 }}
+                      stroke="#ef4444"
+                      strokeWidth={2.75}
+                      fillOpacity={1}
+                      fill="url(#gradientRuptures)"
+                      dot={{ r: 3.5, fill: '#ef4444', stroke: '#ffffff', strokeWidth: 2 }}
+                      activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#ffffff' }}
                     />
-                  </LineChart>
+                    <Area
+                      type="monotone"
+                      dataKey="titularisation"
+                      name="Titularisation"
+                      stroke="#10b981"
+                      strokeWidth={2.75}
+                      fillOpacity={1}
+                      fill="url(#gradientTitularisation)"
+                      dot={{ r: 3.5, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }}
+                      activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#ffffff' }}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
 
-              <p className="text-center text-[11px] text-muted-foreground mt-2">
-                Bilan {currentYear} :{' '}
-                <span className="text-amber-600 font-medium">
-                  {totalTituAnnee} titularisation{totalTituAnnee > 1 ? 's' : ''}
+              <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-white/5 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground gap-2">
+                <span>
+                  Vue dynamique synchronisée • {totalDecisionsFinales} décisions totales enregistrées
                 </span>
-                {' '}•{' '}
-                <span className="text-red-600 font-medium">
-                  {totalRuptAnnee} rupture{totalRuptAnnee > 1 ? 's' : ''}
+                <span className="font-medium text-foreground flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Taux de validation global : <strong className="text-emerald-700 dark:text-emerald-400">{tauxTitularisation}%</strong>
                 </span>
-              </p>
+              </div>
             </div>
           </Card>
         </div>

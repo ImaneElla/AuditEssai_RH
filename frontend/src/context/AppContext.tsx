@@ -15,6 +15,17 @@ import {
   Parametres,
 } from '../types';
 
+import {
+  initialUsers,
+  initialDirections,
+  initialResponsables,
+  initialSalaries,
+  initialPeriodes,
+  initialEvaluations,
+  initialEmails,
+  initialNotifications
+} from '../data/mockData';
+
 export type ScreenId =
   | 'dashboard' | 'salaries' | 'ajouter-salarie' | 'detail-salarie' | 'periodes'
   | 'formulaire-evaluation' | 'retards' | 'emails' | 'moteur' | 'analyse-ia'
@@ -73,6 +84,8 @@ interface AppContextType {
   isAddSalarieModalOpen: boolean; openAddSalarieModal: () => void; closeAddSalarieModal: () => void;
   isSidebarCollapsed: boolean; setIsSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>; toggleSidebar: () => void;
   parametres: Parametres; updateParametres: (newParametres: Partial<Parametres>) => void;
+  isLoaded: boolean;
+  isDemoMode: boolean; toggleDemoMode: () => void;
   directions: Direction[]; responsables: Responsable[]; users: User[];
   allSalaries: Salarie[]; salaries: Salarie[]; archives: Salarie[];
   allPeriodes: PeriodeEvaluation[]; periodes: PeriodeEvaluation[];
@@ -103,22 +116,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // EMPTY STATES - NO FAKE DATA
-  const [directions, setDirections] = useState<Direction[]>([]);
-  const [responsables, setResponsables] = useState<Responsable[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [salariesList, setSalariesList] = useState<Salarie[]>([]);
-  const [periodesList, setPeriodesList] = useState<PeriodeEvaluation[]>([]);
-  const [evaluations, setEvaluations] = useState<EvaluationDetail[]>([]);
-  const [emails, setEmails] = useState<HistoriqueEmail[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  // DEMO MODE TOGGLE (persist in localStorage, default false on SSR to prevent hydration mismatch)
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+
+  // REAL USER DATA STORED SEPARATELY
+  const [realDirections, setRealDirections] = useState<Direction[]>([]);
+  const [realResponsables, setRealResponsables] = useState<Responsable[]>([]);
+  const [realUsers, setRealUsers] = useState<User[]>([]);
+  const [realSalariesList, setRealSalariesList] = useState<Salarie[]>([]);
+  const [realPeriodesList, setRealPeriodesList] = useState<PeriodeEvaluation[]>([]);
+  const [realEvaluations, setRealEvaluations] = useState<EvaluationDetail[]>([]);
+  const [realEmails, setRealEmails] = useState<HistoriqueEmail[]>([]);
+  const [realNotifications, setRealNotifications] = useState<NotificationItem[]>([]);
   const [parametres, setParametres] = useState<Parametres>(initialParametres);
 
   const openAddSalarieModal = () => setIsAddSalarieModalOpen(true);
   const closeAddSalarieModal = () => setIsAddSalarieModalOpen(false);
   const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
 
-  // LOAD ONLY FROM LOCALSTORAGE - NO FALLBACK TO FAKE DATA
+  // LOAD FROM LOCALSTORAGE
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -126,14 +142,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const v = localStorage.getItem(key);
           return v ? JSON.parse(v) : [];
         };
-        setSalariesList(saved('gp_salaries'));
-        setPeriodesList(saved('gp_periodes'));
-        setEvaluations(saved('gp_evaluations'));
-        setEmails(saved('gp_emails'));
-        setNotifications(saved('gp_notifications'));
-        setResponsables(saved('gp_responsables'));
-        setDirections(saved('gp_directions'));
-        setUsers(saved('gp_users'));
+        setRealSalariesList(saved('gp_salaries'));
+        setRealPeriodesList(saved('gp_periodes'));
+        setRealEvaluations(saved('gp_evaluations'));
+        setRealEmails(saved('gp_emails'));
+        setRealNotifications(saved('gp_notifications'));
+        setRealResponsables(saved('gp_responsables'));
+        setRealDirections(saved('gp_directions'));
+        setRealUsers(saved('gp_users'));
 
         const savedParametres = localStorage.getItem('gp_parametres');
         if (savedParametres) setParametres(JSON.parse(savedParametres));
@@ -144,22 +160,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // SAVE TO LOCALSTORAGE
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_salaries', JSON.stringify(salariesList)); }, [salariesList, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_periodes', JSON.stringify(periodesList)); }, [periodesList, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_evaluations', JSON.stringify(evaluations)); }, [evaluations, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_emails', JSON.stringify(emails)); }, [emails, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_notifications', JSON.stringify(notifications)); }, [notifications, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_responsables', JSON.stringify(responsables)); }, [responsables, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_directions', JSON.stringify(directions)); }, [directions, isLoaded]);
-  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_users', JSON.stringify(users)); }, [users, isLoaded]);
+  // SAVE DEMO MODE
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_demo_mode', String(isDemoMode));
+    }
+  }, [isDemoMode, isLoaded]);
+
+  // TOGGLE DEMO MODE
+  const toggleDemoMode = () => {
+    setIsDemoMode(prev => {
+      const next = !prev;
+      showToast(next ? "Mode Démo / Présentation activé" : "Mode Réel activé (données réelles)");
+      return next;
+    });
+  };
+
+  // ACTIVE DATA RESOLUTION: When isDemoMode is TRUE, use initial mock datasets, otherwise real user data
+  const directions = useMemo(() => isDemoMode ? initialDirections : realDirections, [isDemoMode, realDirections]);
+  const responsables = useMemo(() => isDemoMode ? initialResponsables : realResponsables, [isDemoMode, realResponsables]);
+  const users = useMemo(() => isDemoMode ? initialUsers : realUsers, [isDemoMode, realUsers]);
+  const salariesList = useMemo(() => isDemoMode ? initialSalaries : realSalariesList, [isDemoMode, realSalariesList]);
+  const periodesList = useMemo(() => isDemoMode ? initialPeriodes : realPeriodesList, [isDemoMode, realPeriodesList]);
+  const evaluations = useMemo(() => isDemoMode ? initialEvaluations : realEvaluations, [isDemoMode, realEvaluations]);
+  const emails = useMemo(() => isDemoMode ? initialEmails : realEmails, [isDemoMode, realEmails]);
+  const notifications = useMemo(() => isDemoMode ? initialNotifications : realNotifications, [isDemoMode, realNotifications]);
+
+  // SAVE REAL DATA TO LOCALSTORAGE ONLY (never overwrite real data with demo data)
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_salaries', JSON.stringify(realSalariesList)); }, [realSalariesList, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_periodes', JSON.stringify(realPeriodesList)); }, [realPeriodesList, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_evaluations', JSON.stringify(realEvaluations)); }, [realEvaluations, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_emails', JSON.stringify(realEmails)); }, [realEmails, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_notifications', JSON.stringify(realNotifications)); }, [realNotifications, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_responsables', JSON.stringify(realResponsables)); }, [realResponsables, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_directions', JSON.stringify(realDirections)); }, [realDirections, isLoaded]);
+  React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_users', JSON.stringify(realUsers)); }, [realUsers, isLoaded]);
   React.useEffect(() => { if (isLoaded) localStorage.setItem('gp_parametres', JSON.stringify(parametres)); }, [parametres, isLoaded]);
 
-  // STATUS ENGINE (same logic as before)
+  // STATUS ENGINE (same logic as before, updates realPeriodesList when in real mode)
   React.useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || isDemoMode) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    setPeriodesList(prev => prev.map(p => {
+    setRealPeriodesList(prev => prev.map(p => {
       if (p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH' || p.statut === 'RUPTURE') return p;
       const echeance = new Date(p.dateEcheance); echeance.setHours(0, 0, 0, 0);
       const diffDays = Math.round((echeance.getTime() - today.getTime()) / 86400000);
@@ -171,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (newStatut === p.statut && newJoursRetard === p.joursRetard) return p;
       return { ...p, statut: newStatut, joursRetard: newJoursRetard };
     }));
-  }, [isLoaded]);
+  }, [isLoaded, isDemoMode]);
 
   React.useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -217,9 +259,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addMonthsToDate = (dateStr: string, months: number) => { const d = new Date(dateStr); d.setMonth(d.getMonth() + months); return d.toISOString().split('T')[0]; };
 
   const addSalarie = (data: any) => {
+    if (isDemoMode) {
+      showToast("Désactivez le mode Démo pour créer des données réelles permanentes.");
+    }
     const direction = directions.find(d => d.id === data.directionId);
     const responsable = responsables.find(r => r.id === data.responsableId);
-    const newId = salariesList.length > 0 ? Math.max(...salariesList.map(s => s.id)) + 1 : 1;
+    const newId = realSalariesList.length > 0 ? Math.max(...realSalariesList.map(s => s.id)) + 1 : 1;
     const dateFinPrevisionnelle = addMonthsToDate(data.dateEmbauche, 3);
     const matricule = data.matricule || `GP-${new Date().getFullYear()}-${String(newId).padStart(3, '0')}`;
     const newSalarie: Salarie = {
@@ -245,9 +290,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       bloqueEmails: false,
       actif: true
     };
-    setSalariesList(prev => [newSalarie, ...prev]);
+    setRealSalariesList(prev => [newSalarie, ...prev]);
     const periode3M: PeriodeEvaluation = {
-      id: periodesList.length > 0 ? Math.max(...periodesList.map(p => p.id)) + 1 : 1,
+      id: realPeriodesList.length > 0 ? Math.max(...realPeriodesList.map(p => p.id)) + 1 : 1,
       salarieId: newId,
       salarieNom: `${data.firstName} ${data.lastName}`,
       salarieEmail: data.email,
@@ -266,18 +311,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       tokenAccesSalarie: `sec-eval-${newId}-3m-${Date.now().toString(36)}`,
       emailsEnvoyes: {}
     };
-    setPeriodesList(prev => [periode3M, ...prev]);
+    setRealPeriodesList(prev => [periode3M, ...prev]);
     showToast(`Salarié ${data.firstName} ${data.lastName} créé.`);
     setSelectedSalarieId(newId); navigateTo('detail-salarie', { salarieId: newId });
   };
 
-  const updateSalarie = (id: number, data: any) => { setSalariesList(prev => prev.map(s => s.id === id ? { ...s, ...data, nom: data.lastName, prenom: data.firstName } : s)); showToast('Salarié mis à jour.'); };
-  const deleteSalarie = (id: number) => { setSalariesList(prev => prev.filter(s => s.id !== id)); setPeriodesList(prev => prev.filter(p => p.salarieId !== id)); showToast('Salarié supprimé.'); };
-  const restaurerSalarie = (id: number) => { setSalariesList(prev => prev.map(s => s.id === id ? { ...s, actif: true } : s)); showToast('Salarié restauré.'); };
+  const updateSalarie = (id: number, data: any) => { setRealSalariesList(prev => prev.map(s => s.id === id ? { ...s, ...data, nom: data.lastName, prenom: data.firstName } : s)); showToast('Salarié mis à jour.'); };
+  const deleteSalarie = (id: number) => { setRealSalariesList(prev => prev.filter(s => s.id !== id)); setRealPeriodesList(prev => prev.filter(p => p.salarieId !== id)); showToast('Salarié supprimé.'); };
+  const restaurerSalarie = (id: number) => { setRealSalariesList(prev => prev.map(s => s.id === id ? { ...s, actif: true } : s)); showToast('Salarié restauré.'); };
 
   const addResponsable = (data: { firstName: string; lastName: string; email: string; directionId: number; phone?: string; poste?: string; }) => {
     const direction = directions.find(item => item.id === data.directionId);
-    const newId = responsables.length > 0 ? Math.max(...responsables.map(r => r.id)) + 1 : 1;
+    const newId = realResponsables.length > 0 ? Math.max(...realResponsables.map(r => r.id)) + 1 : 1;
     const newResponsable: Responsable = {
       id: newId,
       firstName: data.firstName,
@@ -288,17 +333,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       poste: data.poste ?? '',
       directionName: direction?.name ?? ''
     };
-    setResponsables(prev => [...prev, newResponsable]); setSelectedResponsableId(newId); showToast(`Responsable ${data.firstName} ${data.lastName} ajouté.`);
+    setRealResponsables(prev => [...prev, newResponsable]); setSelectedResponsableId(newId); showToast(`Responsable ${data.firstName} ${data.lastName} ajouté.`);
   };
   const updateResponsable = (id: number, data: any) => {
     const direction = directions.find(item => item.id === data.directionId);
-    setResponsables(prev => prev.map(r => r.id === id ? { ...r, ...data, directionName: direction?.name ?? r.directionName } : r));
-    setSalariesList(prev => prev.map(s => s.responsableId === id ? { ...s, responsableNom: `${data.firstName} ${data.lastName}` } : s));
+    setRealResponsables(prev => prev.map(r => r.id === id ? { ...r, ...data, directionName: direction?.name ?? r.directionName } : r));
+    setRealSalariesList(prev => prev.map(s => s.responsableId === id ? { ...s, responsableNom: `${data.firstName} ${data.lastName}` } : s));
     showToast('Responsable mis à jour.');
   };
   const deleteResponsable = (id: number) => {
-    if (salariesList.some(s => s.responsableId === id)) { showToast('Impossible: salariés affectés.'); return false; }
-    setResponsables(prev => prev.filter(r => r.id !== id)); showToast('Responsable supprimé.'); return true;
+    if (realSalariesList.some(s => s.responsableId === id)) { showToast('Impossible: salariés affectés.'); return false; }
+    setRealResponsables(prev => prev.filter(r => r.id !== id)); showToast('Responsable supprimé.'); return true;
   };
 
   const relancerRetard = (periodeId: number) => { showToast('Relance envoyée.'); };
@@ -306,15 +351,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const submitEvaluation = (data: any) => { showToast('Évaluation enregistrée.'); navigateTo('periodes'); };
   const validerDecisionRH = (id: number, decision: DecisionPeriode, motif: string) => { showToast(`Décision ${decision} validée.`); };
   const triggerCronBatch0900 = () => { showToast('Batch exécuté.'); return { emailsCount: 0, retardsCount: 0 }; };
-  const markNotificationAsRead = (id: number) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, estLue: true } : n));
-  const markAllNotificationsAsRead = () => setNotifications(prev => prev.map(n => ({ ...n, estLue: true })));
+  const markNotificationAsRead = (id: number) => setRealNotifications(prev => prev.map(n => n.id === id ? { ...n, estLue: true } : n));
+  const markAllNotificationsAsRead = () => setRealNotifications(prev => prev.map(n => ({ ...n, estLue: true })));
 
   return (
     <AppContext.Provider value={{
         currentScreen, navigateTo, selectedResponsableId, setSelectedResponsableId, currentRole, setCurrentRole, currentUser, currentResponsable,
         selectedSalarieId, setSelectedSalarieId, selectedPeriodeId, setSelectedPeriodeId, selectedEmail, openEmailModal, closeEmailModal,
         isEmailModalOpen, isAddSalarieModalOpen, openAddSalarieModal, closeAddSalarieModal, isSidebarCollapsed, setIsSidebarCollapsed, toggleSidebar,
-        parametres, updateParametres, directions, responsables, users, allSalaries: salariesList, salaries, archives, allPeriodes: periodesList, periodes,
+        parametres, updateParametres, isLoaded, isDemoMode, toggleDemoMode, directions, responsables, users, allSalaries: salariesList, salaries, archives, allPeriodes: periodesList, periodes,
         evaluations, emails, notifications, addSalarie, updateSalarie, deleteSalarie, restaurerSalarie, addResponsable, updateResponsable, deleteResponsable,
         relancerRetard, relancerTousLesRetards, submitEvaluation, validerDecisionRH, triggerCronBatch0900, markNotificationAsRead, markAllNotificationsAsRead,
         toastMessage, showToast

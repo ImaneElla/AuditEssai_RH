@@ -40,6 +40,7 @@ export default function AIAnalysisScreen() {
 
   const data = selectedEvaluation
     ? {
+        salarieName: selectedPeriode?.salarieNom || 'Salarié',
         poste: savedForm?.poste || selectedPeriode?.salariePoste || 'Poste non renseigné',
         criteres: savedForm
           ? [
