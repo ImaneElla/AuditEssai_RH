@@ -1,7 +1,28 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Loader2, CheckCircle2, TrendingUp, Target, Calculator, Table as TableIcon, Copy, Check } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  TrendingUp,
+  Target,
+  Calculator,
+  Table2,
+  Copy,
+  Check,
+  Brain,
+  Zap,
+  Star,
+  Award,
+  ShieldCheck,
+  BarChart3,
+  Flame,
+  ArrowRight,
+  Layers,
+  FileCheck2,
+  AlertCircle
+} from "lucide-react";
 
 export interface EvaluationCriterion {
   nom: string;
@@ -48,6 +69,8 @@ export default function AIAnalysisModule({ data, onApplyToForm }: AIAnalysisModu
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'TABLE' | 'PLAN'>('ALL');
 
   const generateAnalysis = async () => {
     setLoading(true);
@@ -86,89 +109,279 @@ export default function AIAnalysisModule({ data, onApplyToForm }: AIAnalysisModu
     setTimeout(() => setApplied(false), 3000);
   };
 
-  // Calcul du nombre de critères évalués
+  const handleCopySummary = () => {
+    if (!analysis) return;
+    const summaryText = `--- SYNTHÈSE ANALYSE IA RH ---\nSalarié : ${data.salarieName || 'Collaborateur'} (${data.poste || 'Poste'})\nMoyenne calculée : ${analysis.moyenneGlobale?.toFixed(1) || '-'}/5\n\n1. POINTS FORTS :\n${analysis.pointsForts.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n2. AXES D'AMÉLIORATION :\n${analysis.axesAmelioration.map((a, i) => `${i + 1}. ${a}`).join('\n')}\n\n3. SYNTHÈSE TABLEAU :\n${analysis.syntheseTableau?.[0]?.point3_syntheseMoyenne || ''}`;
+    navigator.clipboard.writeText(summaryText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   const criteresEvaluesCount = data.criteres?.filter((c) => !c.note.includes("Non évalué")).length || 0;
   const totalCriteres = data.criteres?.length || 24;
+  const completionPercent = Math.round((criteresEvaluesCount / totalCriteres) * 100);
+
+  const moyenne = analysis?.moyenneGlobale ?? 0;
+  const getScoreBadge = (score: number) => {
+    if (score >= 4.0) {
+      return {
+        label: "Niveau Excellent • Titularisation Favorable",
+        color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+        badge: "Titularisation Conseillée"
+      };
+    }
+    if (score >= 3.0) {
+      return {
+        label: "Niveau Satisfaisant • Poursuite / Renouvellement",
+        color: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+        badge: "Progression Constatée"
+      };
+    }
+    return {
+      label: "Vigilance Managériale • Axes Critiques",
+      color: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+      badge: "Vigilance Requise"
+    };
+  };
+
+  const scoreBadge = getScoreBadge(moyenne);
 
   return (
-    <div className="space-y-6 p-6 bg-card border border-border rounded-2xl shadow-sm">
-      {/* En-tête avec bouton de déclenchement */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-red-100 text-[#A30000] dark:bg-red-950 dark:text-red-300">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </span>
-            <h3 className="text-base font-bold text-foreground">
-              Analyse IA RH &amp; Synthèse Automatisée
+    <div className="relative overflow-hidden rounded-2xl border border-red-200/80 dark:border-zinc-800 bg-card text-foreground shadow-xl transition-all">
+      {/* Halo décoratif subtil */}
+      <div className="pointer-events-none absolute -top-32 -right-32 w-80 h-80 bg-red-500/10 rounded-full blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl" />
+
+      {/* EN-TÊTE ULTRA-SOIGNÉ */}
+      <div className="relative p-6 border-b border-border bg-muted/30">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A30000] text-white font-bold text-xs uppercase tracking-wider shadow-xs">
+                <Brain className="w-3.5 h-3.5" />
+                Assistant IA Décisionnel
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold text-xs border border-border">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#A30000]" />
+                24 Critères Managériaux
+              </span>
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium ml-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Audit en temps réel
+              </span>
+            </div>
+
+            <h3 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+              Analyse IA &amp; Synthèse en 3 Points
+              <Sparkles className="w-5 h-5 text-red-600" />
             </h3>
+
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              Exploite les notes et appréciations du responsable pour dégager : <strong className="text-foreground">1. Points forts</strong>, <strong className="text-foreground">2. Axes d&apos;amélioration &amp; calcul de la moyenne</strong>, et <strong className="text-foreground">3. Synthèse managériale en tableau</strong>.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Analyse les <span className="font-semibold text-foreground">{totalCriteres} critères d&apos;évaluation</span> et commentaires du responsable pour générer les 3 points clés : Points forts, Axes d&apos;amélioration avec calcul de la moyenne, et Tableau de synthèse.
-          </p>
+
+          {/* Action Button & Completion Tracker */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="px-3.5 py-2 rounded-xl bg-background border border-border flex items-center justify-between sm:justify-start gap-3 shadow-2xs">
+              <div className="text-left">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
+                  Complétion
+                </span>
+                <span className="text-xs font-bold text-foreground">
+                  {criteresEvaluesCount} / {totalCriteres} notés
+                </span>
+              </div>
+              <div className="w-16 bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-[#A30000] h-full rounded-full transition-all duration-500"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={generateAnalysis}
+              disabled={loading}
+              className="relative group overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-[#A30000] via-red-600 to-[#800000] hover:from-[#880000] hover:to-[#6a0000] shadow-md shadow-red-900/20 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Analyse IA en cours...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-rose-200 group-hover:rotate-12 transition-transform" />
+                  <span>{analysis ? "Régénérer l'Analyse" : "Lancer l'Analyse IA (24 critères)"}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={generateAnalysis}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#A30000] hover:bg-[#850000] text-white text-xs font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Analyse IA en cours...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Lancer l&apos;Analyse IA (24 critères)
-              </>
+        {/* NAVIGATION PAR ONGLETS (QUAND ANALYSE PRÊTE) */}
+        {analysis && (
+          <div className="flex items-center gap-2 mt-5 pt-4 border-t border-border">
+            <button
+              onClick={() => setActiveTab('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'ALL'
+                  ? 'bg-foreground text-background shadow-xs'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Vue d&apos;Ensemble (3 Piliers)
+            </button>
+            <button
+              onClick={() => setActiveTab('TABLE')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'TABLE'
+                  ? 'bg-foreground text-background shadow-xs'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Table2 className="w-3.5 h-3.5" />
+              Tableau Synthétique
+            </button>
+            {analysis.planAccompagnement && analysis.planAccompagnement.length > 0 && (
+              <button
+                onClick={() => setActiveTab('PLAN')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'PLAN'
+                    ? 'bg-foreground text-background shadow-xs'
+                    : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Target className="w-3.5 h-3.5" />
+                Plan d&apos;Accompagnement
+              </button>
             )}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
+      {/* ERREUR EVENTUELLE */}
       {errorMessage && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 dark:bg-red-950/30 dark:border-red-900 dark:text-red-300">
-          <p className="font-semibold">Impossible de générer l&apos;analyse :</p>
-          <p className="mt-0.5">{errorMessage}</p>
+        <div className="m-6 p-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/30 text-xs text-red-900 dark:text-red-200 flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Erreur d&apos;analyse :</p>
+            <p className="mt-0.5">{errorMessage}</p>
+          </div>
         </div>
       )}
 
-      {/* RÉSULTATS DE L'ANALYSE IA EN 3 POINTS */}
-      {analysis && (
-        <div className="space-y-6 animate-in fade-in-50 duration-300">
-          {/* Bannière récapitulative Salarié & Moyenne Calculée */}
-          <div className="p-4 rounded-xl bg-secondary/50 border border-border flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#A30000]/10 text-[#A30000] flex items-center justify-center font-bold text-sm">
+      {/* ÉCRAN DE CHARGEMENT */}
+      {loading && (
+        <div className="p-10 text-center space-y-6">
+          <div className="relative inline-flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#A30000] flex items-center justify-center shadow-lg shadow-red-900/30 animate-pulse">
+              <Brain className="w-8 h-8 text-white animate-spin" />
+            </div>
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h4 className="text-sm font-bold text-foreground">
+              Traitement IA des 24 critères managériaux...
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Calcul de la moyenne globale, identification des forces et formalisation du tableau décisionnel.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ÉCRAN VIDE D'INVITATION */}
+      {!loading && !analysis && (
+        <div className="p-8 sm:p-10 text-center space-y-6">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 flex items-center justify-center text-[#A30000] shadow-sm">
+            <Sparkles className="w-7 h-7" />
+          </div>
+
+          <div className="max-w-md mx-auto space-y-1.5">
+            <h4 className="text-sm font-bold text-foreground">
+              Prêt pour le diagnostic des 24 critères
+            </h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Cliquez sur <strong className="text-foreground">« Lancer l&apos;Analyse IA »</strong> pour générer automatiquement :
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
+            <div className="p-4 rounded-xl bg-background border border-border shadow-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                <Star className="w-3.5 h-3.5" />
+                1. Points Forts
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Détection des réussites majeures et compétences maîtrisées.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-background border border-border shadow-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+                <TrendingUp className="w-3.5 h-3.5" />
+                2. Axes &amp; Moyenne
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Calcul précis de la moyenne et leviers d&apos;optimisation.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-background border border-border shadow-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider">
+                <Table2 className="w-3.5 h-3.5" />
+                3. Tableau Synthèse
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Format | Salarié | 1 | 2 | 3 | prêt pour validation managériale.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RÉSULTATS DE L'ANALYSE */}
+      {!loading && analysis && (
+        <div className="p-6 space-y-6">
+          {/* BANDEAU COCKPIT SUPÉRIEUR */}
+          <div className="p-5 rounded-2xl bg-zinc-950 text-white shadow-xl border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#A30000] to-red-600 text-white flex items-center justify-center font-black text-lg shadow-md shrink-0">
                 {(data.salarieName || "S")[0].toUpperCase()}
               </div>
+
               <div>
-                <p className="text-xs text-muted-foreground">Collaborateur évalué</p>
-                <p className="text-sm font-bold text-foreground">
-                  {data.salarieName || "Salarié"} {data.poste ? `— ${data.poste}` : ""}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-base font-bold text-white tracking-tight">
+                    {data.salarieName || "Collaborateur"}
+                  </h4>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-200 border border-white/10">
+                    {data.poste || "Poste évalué"}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Synthèse 24 critères • {scoreBadge.label}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <span className="text-[11px] text-muted-foreground block">Critères renseignés</span>
-                <span className="text-xs font-semibold text-foreground">
-                  {criteresEvaluesCount} / {totalCriteres} critères
-                </span>
-              </div>
-
+            {/* Note & Actions */}
+            <div className="flex flex-wrap items-center gap-3">
               {analysis.moyenneGlobale !== undefined && (
-                <div className="flex items-center gap-2 bg-background px-3 py-1.5 rounded-lg border border-border shadow-xs">
-                  <Calculator className="w-4 h-4 text-[#A30000]" />
+                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+                  <Calculator className="w-5 h-5 text-red-400" />
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground block">Moyenne calculée</span>
-                    <span className="text-sm font-black text-[#A30000]">
-                      {analysis.moyenneGlobale.toFixed(1)} / 5
+                    <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
+                      Moyenne Calculée
                     </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-white">
+                        {analysis.moyenneGlobale.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-zinc-400">/ 5.0</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -176,181 +389,248 @@ export default function AIAnalysisModule({ data, onApplyToForm }: AIAnalysisModu
               {onApplyToForm && (
                 <button
                   onClick={handleApply}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 text-white text-xs font-medium rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-zinc-950 hover:bg-zinc-100 font-bold text-xs shadow-md active:scale-95 transition-all cursor-pointer"
                 >
                   {applied ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      Appliqué au formulaire !
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>Transféré au formulaire !</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" />
-                      Insérer dans le formulaire
+                      <FileCheck2 className="w-4 h-4 text-[#A30000]" />
+                      <span>Insérer dans le Formulaire</span>
                     </>
                   )}
                 </button>
               )}
+
+              <button
+                onClick={handleCopySummary}
+                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-colors cursor-pointer"
+                title="Copier la synthèse"
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
-          {/* POINT 1 & POINT 2 : POINTS FORTS ET AXES D'AMÉLIORATION */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 1. Identification des points forts */}
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
-                  <CheckCircle2 className="w-4 h-4" />
-                  1. Identification des Points Forts
-                </h4>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                  {analysis.pointsForts.length} forces clés
-                </span>
-              </div>
-              <ul className="text-xs text-foreground space-y-2">
-                {analysis.pointsForts.map((pt, idx) => (
-                  <li key={idx} className="flex items-start gap-2 bg-background/60 p-2.5 rounded-lg border border-emerald-500/10">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 font-bold text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <span className="leading-relaxed">{pt}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* 2. Détection des axes d'amélioration & Calcul moyenne */}
-            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wide">
-                  <TrendingUp className="w-4 h-4" />
-                  2. Détection des Axes d&apos;Amélioration &amp; Moyenne
-                </h4>
-                {analysis.moyenneGlobale !== undefined && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300">
-                    Moyenne : {analysis.moyenneGlobale.toFixed(1)}/5
-                  </span>
-                )}
-              </div>
-              <ul className="text-xs text-foreground space-y-2">
-                {analysis.axesAmelioration.map((axe, idx) => (
-                  <li key={idx} className="flex items-start gap-2 bg-background/60 p-2.5 rounded-lg border border-amber-500/10">
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 font-bold text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <span className="leading-relaxed">{axe}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* POINT 3 : SYNTHÈSE GÉNÉRALE EN TABLEAU (| SALARIÉ | 1 | 2 | 3 |) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
-                <TableIcon className="w-4 h-4 text-[#A30000]" />
-                3. Synthèse Générale en Tableau
-              </h4>
-              <span className="text-[11px] text-muted-foreground">
-                Tableau synthétique conforme au bilan managérial
-              </span>
-            </div>
-
-            <div className="overflow-x-auto border border-border rounded-xl bg-card shadow-xs">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-secondary/70 text-foreground border-b border-border text-[11px] uppercase font-bold tracking-wider">
-                    <th className="py-3 px-4 border-r border-border w-1/5">Salarié</th>
-                    <th className="py-3 px-4 border-r border-border w-4/15">
-                      1. Points Forts
-                    </th>
-                    <th className="py-3 px-4 border-r border-border w-4/15">
-                      2. Axes d&apos;Amélioration
-                    </th>
-                    <th className="py-3 px-4 w-5/15 bg-primary/5 text-primary">
-                      3. Synthèse &amp; Moyenne
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {(analysis.syntheseTableau && analysis.syntheseTableau.length > 0
-                    ? analysis.syntheseTableau
-                    : [
-                        {
-                          salarie: data.salarieName || "Collaborateur",
-                          point1_pointsForts: analysis.pointsForts[0] || "Compétences techniques solides et rigueur opérationnelle.",
-                          point2_axesAmelioration: analysis.axesAmelioration[0] || "Autonomie sur les tâches complexes et prise d'initiative.",
-                          point3_syntheseMoyenne: `Moyenne : ${analysis.moyenneGlobale ? analysis.moyenneGlobale.toFixed(1) : "3.5"}/5 — Progression constante avec potentiel confirmé.`
-                        }
-                      ]
-                  ).map((row, idx) => (
-                    <tr key={idx} className="hover:bg-secondary/20 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-foreground border-r border-border align-top">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                            {row.salarie[0]?.toUpperCase() || "S"}
-                          </div>
-                          <div>
-                            <p className="font-semibold">{row.salarie}</p>
-                            {data.poste && (
-                              <p className="text-[10px] text-muted-foreground">{data.poste}</p>
-                            )}
-                          </div>
+          {/* CONTENU SELON L'ONGLET ACTIF */}
+          {(activeTab === 'ALL' || activeTab === 'TABLE') && (
+            <div className="space-y-6">
+              {/* 1. POINTS FORTS & 2. AXES D'AMÉLIORATION */}
+              {activeTab === 'ALL' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* BLOC 1 : POINTS FORTS */}
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 p-5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-emerald-600 text-white">
+                          <CheckCircle2 className="w-4 h-4" />
                         </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-foreground/90 border-r border-border leading-relaxed align-top">
-                        <div className="flex items-start gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>{row.point1_pointsForts}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-foreground/90 border-r border-border leading-relaxed align-top">
-                        <div className="flex items-start gap-1.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                          <span>{row.point2_axesAmelioration}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-foreground bg-primary/5 leading-relaxed align-top font-medium">
-                        <div className="space-y-1">
-                          <span className="inline-block px-2 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
-                            {analysis.moyenneGlobale !== undefined ? `Moyenne : ${analysis.moyenneGlobale.toFixed(1)}/5` : "Évaluation"}
+                        <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                          1. Identification des Points Forts
+                        </h4>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30">
+                        {analysis.pointsForts.length} forces majeures
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {analysis.pointsForts.map((pt, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-xl bg-card border border-emerald-500/20 shadow-2xs flex items-start gap-3"
+                        >
+                          <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                            {idx + 1}
                           </span>
-                          <p className="text-xs text-foreground/90">{row.point3_syntheseMoyenne}</p>
+                          <p className="text-xs text-foreground font-medium leading-relaxed">
+                            {pt}
+                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* BLOC 2 : AXES D'AMÉLIORATION & MOYENNE */}
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 p-5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500 text-white">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                          2. Détection des Axes &amp; Moyenne
+                        </h4>
+                      </div>
+                      {analysis.moyenneGlobale !== undefined && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30">
+                          Moyenne : {analysis.moyenneGlobale.toFixed(1)}/5
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {analysis.axesAmelioration.map((axe, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-xl bg-card border border-amber-500/20 shadow-2xs flex items-start gap-3"
+                        >
+                          <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <p className="text-xs text-foreground font-medium leading-relaxed">
+                            {axe}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BLOC 3 : SYNTHÈSE GÉNÉRALE EN TABLEAU */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-[#A30000] text-white">
+                      <Table2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        3. Synthèse Générale en Tableau
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Format managérial : | Salarié | 1. Points Forts | 2. Axes d&apos;Amélioration | 3. Synthèse &amp; Moyenne |
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground border border-border">
+                    Matrice Décisionnelle
+                  </span>
+                </div>
+
+                <div className="overflow-hidden border border-border rounded-2xl bg-card shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-zinc-900 text-white text-xs uppercase tracking-wider font-bold border-b border-zinc-800">
+                          <th className="py-3.5 px-4 w-[22%] border-r border-zinc-800">
+                            Salarié &amp; Poste
+                          </th>
+                          <th className="py-3.5 px-4 w-[26%] border-r border-zinc-800">
+                            1. Points Forts
+                          </th>
+                          <th className="py-3.5 px-4 w-[26%] border-r border-zinc-800">
+                            2. Axes d&apos;Amélioration
+                          </th>
+                          <th className="py-3.5 px-4 w-[26%] bg-[#A30000]/30 text-white font-black">
+                            3. Synthèse &amp; Moyenne
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {(analysis.syntheseTableau && analysis.syntheseTableau.length > 0
+                          ? analysis.syntheseTableau
+                          : [
+                              {
+                                salarie: data.salarieName || "Collaborateur",
+                                point1_pointsForts: analysis.pointsForts[0] || "Compétences techniques solides et rigueur opérationnelle.",
+                                point2_axesAmelioration: analysis.axesAmelioration[0] || "Autonomie sur les tâches complexes et prise d'initiative.",
+                                point3_syntheseMoyenne: `Moyenne : ${analysis.moyenneGlobale ? analysis.moyenneGlobale.toFixed(1) : "3.5"}/5 — Progression régulière avec potentiel confirmé.`
+                              }
+                            ]
+                        ).map((row, idx) => (
+                          <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                            {/* SALARIÉ */}
+                            <td className="py-4 px-4 font-bold text-foreground border-r border-border align-top">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-[#A30000] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                  {row.salarie[0]?.toUpperCase() || "S"}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-xs text-foreground truncate">{row.salarie}</p>
+                                  {data.poste && (
+                                    <p className="text-xs text-muted-foreground truncate">{data.poste}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 1. POINTS FORTS */}
+                            <td className="py-4 px-4 text-foreground border-r border-border leading-relaxed align-top">
+                              <div className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <span className="text-xs font-medium">{row.point1_pointsForts}</span>
+                              </div>
+                            </td>
+
+                            {/* 2. AXES D'AMÉLIORATION */}
+                            <td className="py-4 px-4 text-foreground border-r border-border leading-relaxed align-top">
+                              <div className="flex items-start gap-2">
+                                <TrendingUp className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <span className="text-xs font-medium">{row.point2_axesAmelioration}</span>
+                              </div>
+                            </td>
+
+                            {/* 3. SYNTHÈSE & MOYENNE */}
+                            <td className="py-4 px-4 text-foreground bg-[#A30000]/5 leading-relaxed align-top">
+                              <div className="space-y-1.5">
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-[#A30000] text-white font-bold text-xs shadow-2xs">
+                                  {analysis.moyenneGlobale !== undefined ? `Moyenne : ${analysis.moyenneGlobale.toFixed(1)}/5` : "Synthèse"}
+                                </span>
+                                <p className="text-xs text-foreground font-medium leading-relaxed">
+                                  {row.point3_syntheseMoyenne}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* PLAN D'ACCOMPAGNEMENT RECOMMANDÉ */}
-          {analysis.planAccompagnement && analysis.planAccompagnement.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
-                <Target className="w-4 h-4 text-[#A30000]" />
-                Plan d&apos;Accompagnement Recommandé par l&apos;IA
-              </h4>
+          {/* PLAN D'ACCOMPAGNEMENT */}
+          {(activeTab === 'ALL' || activeTab === 'PLAN') && analysis.planAccompagnement && analysis.planAccompagnement.length > 0 && (
+            <div className="space-y-3 pt-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs">
+                  <Target className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    Plan d&apos;Accompagnement Recommandé par l&apos;IA
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Mesures opérationnelles pour accompagner la titularisation ou consolider les compétences
+                  </p>
+                </div>
+              </div>
 
-              <div className="overflow-x-auto border border-border rounded-xl bg-card">
+              <div className="overflow-hidden border border-border rounded-xl bg-card shadow-2xs">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-secondary/60 text-muted-foreground border-b border-border uppercase font-semibold text-[10px]">
+                  <thead className="bg-muted text-muted-foreground border-b border-border uppercase font-semibold text-xs">
                     <tr>
-                      <th className="py-2.5 px-3">Action d&apos;accompagnement</th>
-                      <th className="py-2.5 px-3">Objectif visé</th>
-                      <th className="py-2.5 px-3">Moyens / Formations</th>
-                      <th className="py-2.5 px-3 whitespace-nowrap">Échéance</th>
+                      <th className="py-3 px-3.5">Action d&apos;accompagnement</th>
+                      <th className="py-3 px-3.5">Objectif visé</th>
+                      <th className="py-3 px-3.5">Moyens / Formations</th>
+                      <th className="py-3 px-3.5 whitespace-nowrap">Échéance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {analysis.planAccompagnement.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-secondary/30 transition-colors">
-                        <td className="py-3 px-3 font-medium text-foreground">{item.action}</td>
-                        <td className="py-3 px-3 text-muted-foreground">{item.objectif}</td>
-                        <td className="py-3 px-3 text-muted-foreground">{item.moyens}</td>
-                        <td className="py-3 px-3 whitespace-nowrap text-foreground font-semibold">{item.echeance}</td>
+                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-3.5 font-bold text-foreground">{item.action}</td>
+                        <td className="py-3 px-3.5 text-muted-foreground font-medium">{item.objectif}</td>
+                        <td className="py-3 px-3.5 text-muted-foreground font-medium">{item.moyens}</td>
+                        <td className="py-3 px-3.5 whitespace-nowrap text-foreground font-bold">{item.echeance}</td>
                       </tr>
                     ))}
                   </tbody>

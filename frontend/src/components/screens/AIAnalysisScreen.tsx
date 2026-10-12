@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Sparkles } from 'lucide-react';
 import AIAnalysisModule from './AIAnalysisModule';
 import {
   aptitudesPersoItems,
@@ -93,50 +94,63 @@ export default function AIAnalysisScreen() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Analyse IA des évaluations</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Obtenez des pistes de synthèse et d’accompagnement à partir d’une évaluation soumise.
-        </p>
+      {/* Header statutaire stylisé */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-lg bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400">
+              <Sparkles className="w-5 h-5" />
+            </span>
+            <h2 className="text-xl md:text-2xl font-black text-foreground tracking-tight">
+              Analyse IA des Évaluations
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Audit cognitif, calcul automatisé des moyennes et aide à la décision pour les périodes d&apos;essai.
+          </p>
+        </div>
       </div>
 
       {availableEvaluations.length === 0 ? (
-        <Card className="space-y-3 p-6">
-          <p className="text-sm font-semibold text-foreground">Aucune évaluation disponible</p>
-          <p className="text-sm text-muted-foreground">
-            Les évaluations soumises de votre équipe apparaîtront ici pour analyse.
+        <Card className="space-y-3 p-8 text-center border-dashed">
+          <p className="text-sm font-semibold text-foreground">Aucune évaluation disponible pour le moment</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Les évaluations soumises par les responsables hiérarchiques apparaîtront ici pour le traitement décisionnel.
           </p>
-          <Button variant="outline" onClick={() => navigateTo('periodes')}>
+          <Button variant="outline" size="sm" onClick={() => navigateTo('periodes')}>
             Voir les périodes d’évaluation
           </Button>
         </Card>
       ) : (
         <>
-          <div className="max-w-xl space-y-2">
-            <label htmlFor="ai-evaluation-select" className="text-sm font-medium text-foreground">
-              Évaluation à analyser
-            </label>
-            <select
-              id="ai-evaluation-select"
-              value={selectedEvaluation?.id ?? ''}
-              onChange={(event) => setSelectedEvaluationId(Number(event.target.value))}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-            >
-              {availableEvaluations.map((evaluation) => {
-                const periode = periodes.find((item) => item.id === evaluation.periodeId);
-                return (
-                  <option key={evaluation.id} value={evaluation.id}>
-                    {periode?.salarieNom ?? 'Salarié'} · {periode?.typePeriode ?? 'Évaluation'}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+          <div className="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <label htmlFor="ai-evaluation-select" className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                Sélectionner l&apos;Évaluation à analyser
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Choisissez parmi les bilans renseignés par les managers.
+              </p>
+            </div>
 
-          <p className="max-w-3xl text-xs text-muted-foreground">
-            Le nom du salarié n’est pas transmis à OpenAI. Les notes et commentaires le sont pour
-            générer les suggestions ; vérifiez-les avant de les utiliser.
-          </p>
+            <div className="w-full md:w-80">
+              <select
+                id="ai-evaluation-select"
+                value={selectedEvaluation?.id ?? ''}
+                onChange={(event) => setSelectedEvaluationId(Number(event.target.value))}
+                className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-600 outline-none cursor-pointer"
+              >
+                {availableEvaluations.map((evaluation) => {
+                  const periode = periodes.find((item) => item.id === evaluation.periodeId);
+                  return (
+                    <option key={evaluation.id} value={evaluation.id}>
+                      {periode?.salarieNom ?? 'Salarié'} — {periode?.typePeriode === 'TROIS_MOIS' ? 'Période 1 (3 mois)' : 'Période 2 (6 mois)'}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
 
           {data && <AIAnalysisModule key={selectedEvaluation?.id} data={data} />}
         </>

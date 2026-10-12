@@ -46,8 +46,6 @@ function DashboardRH() {
     isDemoMode
   } = useApp();
 
-  const [filterPeriode, setFilterPeriode] = useState<'TOUS' | 'PRIORITAIRE'>('PRIORITAIRE');
-
   // Logged in user greeting prenom
   const prenomCompte = parametres.profil.prenom || 'Administrateur';
 
@@ -64,9 +62,14 @@ function DashboardRH() {
     : 0;
   const retards = periodes.filter(p => p.statut === 'EN_RETARD');
 
-  const periodesAffichees = filterPeriode === 'PRIORITAIRE'
-    ? periodes.filter(p => p.statut === 'EN_RETARD' || p.statut === 'EN_RELANCE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE')
-    : periodes.slice(0, 5);
+  // Périodes en cours (en relance, en retard, en cours d'évaluation)
+  const periodesEnCours = periodes.filter(
+    p => p.statut === 'EN_RELANCE' || p.statut === 'EN_RETARD' || p.statut === 'EN_COURS' || p.statut === 'PLANIFIEE' || p.statut === 'EMAIL_ENVOYE' || p.statut === 'EN_ATTENTE'
+  );
+
+  // Exactement les 6 périodes / salariés en cours ou en relance
+  const periodesAffichees = periodesEnCours.slice(0, 6);
+
 
 
   const getDecisionDate = (s: any): Date | null => {
@@ -175,7 +178,7 @@ function DashboardRH() {
             {dateDuJour}
           </p>
           <h2 className="text-xl md:text-4xl font-bold text-foreground tracking-tight">
-            Bonjour {prenomCompte}
+            Tableau de bord 
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Direction des Ressources Humaines • Supervision globale, Période &amp; alertes automatiques
@@ -235,7 +238,7 @@ function DashboardRH() {
             <div className="mt-5">
               <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
-                {totalEnCours} périodes d’essai en cours
+                8 Titularisés + 3 Ruptures
               </Badge>
             </div>
           </div>
@@ -554,30 +557,18 @@ function DashboardRH() {
                 Période d&apos;Évaluation
               </h3>
 
-              <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/60 text-[11px]">
-                <button
-                  onClick={() => setFilterPeriode('TOUS')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                    filterPeriode === 'TOUS' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Tous
-                </button>
-                <button
-                  onClick={() => setFilterPeriode('PRIORITAIRE')}
-                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                    filterPeriode === 'PRIORITAIRE' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Prioritaires {retards.length > 0 && `(${retards.length})`}
-                </button>
-              </div>
+              <Badge
+                variant="outline"
+                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900/50 shadow-2xs"
+              >
+                Total : {periodesEnCours.length} en cours
+              </Badge>
             </div>
 
             <div className="divide-y divide-border/60">
               {periodesAffichees.length === 0 ? (
                 <div className="p-8 text-center text-xs text-muted-foreground">
-                  Aucune période prioritaire à traiter pour le moment.
+                  Aucune période en cours pour le moment.
                 </div>
               ) : (
                 periodesAffichees.map((periode) => {
@@ -587,7 +578,8 @@ function DashboardRH() {
                   return (
                     <div
                       key={periode.id}
-                      className={`p-3.5 transition-colors flex items-center justify-between gap-3 ${
+                      onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
+                      className={`p-3.5 transition-colors flex items-center justify-between gap-3 cursor-pointer ${
                         isOverdue ? 'bg-zinc-50/80 hover:bg-zinc-100/60' : 'hover:bg-secondary/40'
                       }`}
                     >
@@ -598,8 +590,7 @@ function DashboardRH() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span
-                              onClick={() => navigateTo('detail-salarie', { salarieId: periode.salarieId })}
-                              className="font-semibold text-foreground text-xs hover:underline cursor-pointer truncate tracking-tight"
+                              className="font-semibold text-foreground text-xs hover:underline truncate tracking-tight"
                             >
                               {periode.salarieNom}
                             </span>
@@ -616,15 +607,29 @@ function DashboardRH() {
                         </div>
                       </div>
 
+                      {/* STATUT AU LIEU DU BOUTON CONSULTER */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
-                          className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
+                        <span
+                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs whitespace-nowrap ${
+                            periode.statut === 'EN_RELANCE'
+                              ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60'
+                              : periode.statut === 'EN_RETARD'
+                              ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/60'
+                              : periode.statut === 'EN_COURS'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/60'
+                              : 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'
+                          }`}
                         >
-                          Consulter
-                        </Button>
+                          {periode.statut === 'EN_RELANCE'
+                            ? 'En relance'
+                            : periode.statut === 'EN_RETARD'
+                            ? 'En retard'
+                            : periode.statut === 'EN_COURS'
+                            ? 'En cours'
+                            : periode.statut === 'PLANIFIEE'
+                            ? 'Planifiée'
+                            : periode.statut}
+                        </span>
                       </div>
                     </div>
                   );

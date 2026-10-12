@@ -962,7 +962,7 @@ export const initialPeriodes: PeriodeEvaluation[] = [
     dateEcheance: "2026-10-23",
     dateDeclenchementEmail: "2026-10-02",
     heureDeclenchement: "09:00:00",
-    statut: "EN_COURS",
+    statut: "EN_RELANCE",
     decisionFinale: "EN_ATTENTE",
     tokenAccesSalarie: "sec-eval-15-3m-demo",
     emailsEnvoyes: {
@@ -986,7 +986,7 @@ export const initialPeriodes: PeriodeEvaluation[] = [
     dateEcheance: "2026-11-03",
     dateDeclenchementEmail: "2026-10-13",
     heureDeclenchement: "09:00:00",
-    statut: "EN_COURS",
+    statut: "EN_RELANCE",
     decisionFinale: "EN_ATTENTE",
     tokenAccesSalarie: "sec-eval-16-3m-demo",
     emailsEnvoyes: {}
@@ -1006,7 +1006,7 @@ export const initialPeriodes: PeriodeEvaluation[] = [
     dateEcheance: "2026-11-17",
     dateDeclenchementEmail: "2026-10-27",
     heureDeclenchement: "09:00:00",
-    statut: "PLANIFIEE",
+    statut: "EN_COURS",
     decisionFinale: "EN_ATTENTE",
     tokenAccesSalarie: "sec-eval-17-3m-demo",
     emailsEnvoyes: {}
@@ -1028,7 +1028,7 @@ export const initialPeriodes: PeriodeEvaluation[] = [
     dateEcheance: "2026-12-01",
     dateDeclenchementEmail: "2026-11-10",
     heureDeclenchement: "09:00:00",
-    statut: "PLANIFIEE",
+    statut: "EN_COURS",
     decisionFinale: "EN_ATTENTE",
     tokenAccesSalarie: "sec-eval-18-3m-demo",
     emailsEnvoyes: {}
