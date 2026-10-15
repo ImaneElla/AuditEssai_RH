@@ -1,13 +1,13 @@
 package com.premium.essai.service.impl;
 
-import com.premium.essai.entity.HistoriqueEmail;
-import com.premium.essai.entity.ParametresCompte;
-import com.premium.essai.entity.PeriodeEvaluation;
-import com.premium.essai.entity.TemplateEmail;
-import com.premium.essai.entity.User;
-import com.premium.essai.enums.RoleDestinataire;
-import com.premium.essai.enums.StatutEmail;
-import com.premium.essai.enums.TypeEmail;
+import com.premium.essai.model.HistoriqueEmail;
+import com.premium.essai.model.ParametresCompte;
+import com.premium.essai.model.PeriodeEvaluation;
+import com.premium.essai.model.TemplateEmail;
+import com.premium.essai.model.User;
+import com.premium.essai.model.enums.RoleDestinataire;
+import com.premium.essai.model.enums.StatutEmail;
+import com.premium.essai.model.enums.TypeEmail;
 import com.premium.essai.repository.HistoriqueEmailRepository;
 import com.premium.essai.repository.ParametresCompteRepository;
 import com.premium.essai.repository.TemplateEmailRepository;
@@ -62,11 +62,11 @@ public class MailServiceImpl implements MailService {
         String destinataire = periode.getResponsable().getEmail();
         String nomSalarie = periode.getSalarie().getFirstName() + " " + periode.getSalarie().getLastName();
 
-        String objet = "URGENT : [ÉCHÉANCE DÉPASSÉE +" + joursRetard + "j] Évaluation Période d'Essai - " + nomSalarie;
+        String objet = "URGENT : [Ã‰CHÃ‰ANCE DÃ‰PASSÃ‰E +" + joursRetard + "j] Ã‰valuation PÃ©riode d'Essai - " + nomSalarie;
         String corps = String.format(
                 "Bonjour %s,\n\n" +
-                "Le délai d'évaluation pour %s est dépassé de %d jour(s) (Échéance du %s).\n\n" +
-                "Ce dossier est sous le contrôle de la Direction RH. Pour soumettre une évaluation tardive, veuillez contacter le pôle RH.\n\n" +
+                "Le dÃ©lai d'Ã©valuation pour %s est dÃ©passÃ© de %d jour(s) (Ã‰chÃ©ance du %s).\n\n" +
+                "Ce dossier est sous le contrÃ´le de la Direction RH. Pour soumettre une Ã©valuation tardive, veuillez contacter le pÃ´le RH.\n\n" +
                 "Direction RH - Groupe Premium",
                 periode.getResponsable().getLastName(), nomSalarie, joursRetard, periode.getDateEcheance()
         );
@@ -83,10 +83,10 @@ public class MailServiceImpl implements MailService {
 
         List<User> admins = userRepository.findAll();
 
-        String objet = "Formulaire Complété : Évaluation Période d'Essai - " + nomSalarie;
+        String objet = "Formulaire ComplÃ©tÃ© : Ã‰valuation PÃ©riode d'Essai - " + nomSalarie;
         String corps = String.format(
-                "Bonjour l'équipe RH,\n\n" +
-                "Le responsable %s vient de soumettre la fiche d'évaluation de la période d'essai de %s (Matricule: %s).\n\n" +
+                "Bonjour l'Ã©quipe RH,\n\n" +
+                "Le responsable %s vient de soumettre la fiche d'Ã©valuation de la pÃ©riode d'essai de %s (Matricule: %s).\n\n" +
                 "Note Globale : %.2f / 5\n\n" +
                 "Vous pouvez consulter le dossier sur la plateforme :\n" +
                 "https://auditessai-rh.vercel.app/admin/evaluations/%d\n\n" +
@@ -103,12 +103,12 @@ public class MailServiceImpl implements MailService {
     @Override
     @Transactional
     public void sendConfirmationRH(PeriodeEvaluation periode, String decision) {
-        log.info("Notification de décision RH ({}) enregistrée pour le salarié ID: {}", decision, periode.getSalarie().getId());
+        log.info("Notification de dÃ©cision RH ({}) enregistrÃ©e pour le salariÃ© ID: {}", decision, periode.getSalarie().getId());
     }
 
     private void sendEmailAvecTemplate(PeriodeEvaluation periode, TypeEmail typeEmail) {
         TemplateEmail template = templateEmailRepository.findByTypeEmail(typeEmail)
-                .orElseThrow(() -> new RuntimeException("Template non trouvé pour : " + typeEmail));
+                .orElseThrow(() -> new RuntimeException("Template non trouvÃ© pour : " + typeEmail));
 
         String destinataire = periode.getResponsable().getEmail();
         String nomSalarie = periode.getSalarie().getFirstName() + " " + periode.getSalarie().getLastName();
@@ -128,7 +128,7 @@ public class MailServiceImpl implements MailService {
 
     private boolean dispatchEmail(String to, String subject, String body) {
         try {
-            ParametresCompte params = parametresCompteRepository.findGlobalSettings().orElse(null);
+            ParametresCompte params = parametresCompteRepository.findFirstByOrderByIdAsc().orElse(null);
             String fromEmail = (params != null && params.getEmailExpediteur() != null) ? params.getEmailExpediteur() : "rh@groupe-premium.ma";
 
             MimeMessage message = mailSender.createMimeMessage();
@@ -139,10 +139,10 @@ public class MailServiceImpl implements MailService {
             helper.setText(body, false);
 
             mailSender.send(message);
-            log.info("E-mail envoyé avec succès à : {}", to);
+            log.info("E-mail envoyÃ© avec succÃ¨s Ã  : {}", to);
             return true;
         } catch (Exception e) {
-            log.error("Erreur d'envoi d'e-mail à {} : {}", to, e.getMessage());
+            log.error("Erreur d'envoi d'e-mail Ã  {} : {}", to, e.getMessage());
             return false;
         }
     }
@@ -158,7 +158,7 @@ public class MailServiceImpl implements MailService {
                 .typeEmail(type)
                 .dateEnvoi(LocalDate.now())
                 .heureEnvoi(LocalTime.now())
-                .statut(succes ? StatutEmail.DELIVRE : StatutEmail.OUVERT)
+                .statut(succes ? StatutEmail.DELIVRE.name() : StatutEmail.ECHEC.name())
                 .batchCron(true)
                 .contenuCorps(corps)
                 .lienSecurise(lien)

@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface SalarieService {
     SalarieResponseDTO createSalarie(SalarieRequestDTO dto);
-    SalarieResponseDTO getSalarieById(Long id);
     List<SalarieResponseDTO> getAllSalariesActifs();
+    SalarieResponseDTO getSalarieById(Long id);
     void cloturerDemission(Long salarieId, String motif);
 }

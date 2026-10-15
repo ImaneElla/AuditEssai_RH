@@ -2,13 +2,13 @@ package com.premium.essai.service.impl;
 
 import com.premium.essai.dto.SalarieRequestDTO;
 import com.premium.essai.dto.SalarieResponseDTO;
-import com.premium.essai.entity.Direction;
-import com.premium.essai.entity.PeriodeEvaluation;
-import com.premium.essai.entity.Responsable;
-import com.premium.essai.entity.Salarie;
-import com.premium.essai.enums.StatutEssai;
-import com.premium.essai.enums.StatutPeriode;
-import com.premium.essai.enums.TypePeriode;
+import com.premium.essai.model.Direction;
+import com.premium.essai.model.PeriodeEvaluation;
+import com.premium.essai.model.Responsable;
+import com.premium.essai.model.Salarie;
+import com.premium.essai.model.enums.StatutEssai;
+import com.premium.essai.model.enums.StatutPeriode;
+import com.premium.essai.model.enums.PeriodeType;
 import com.premium.essai.repository.DirectionRepository;
 import com.premium.essai.repository.PeriodeEvaluationRepository;
 import com.premium.essai.repository.ResponsableRepository;
@@ -36,19 +36,22 @@ public class SalarieServiceImpl implements SalarieService {
     @Transactional
     public SalarieResponseDTO createSalarie(SalarieRequestDTO dto) {
         Direction direction = directionRepository.findById(dto.getDirectionId())
-                .orElseThrow(() -> new RuntimeException("Direction non trouvée ID: " + dto.getDirectionId()));
+                .orElseThrow(() -> new RuntimeException("Direction non trouvee ID: " + dto.getDirectionId()));
 
         Responsable responsable = responsableRepository.findById(dto.getResponsableId())
-                .orElseThrow(() -> new RuntimeException("Responsable non trouvé ID: " + dto.getResponsableId()));
+                .orElseThrow(() -> new RuntimeException("Responsable non trouve ID: " + dto.getResponsableId()));
 
         String matricule = generateUniqueMatricule();
         LocalDate dateEmbauche = dto.getDateEmbauche();
         LocalDate dateFinPrevisionnelle = dateEmbauche.plusMonths(6);
 
+        String firstName = dto.getFirstName() != null ? dto.getFirstName() : dto.getPrenom();
+        String lastName = dto.getLastName() != null ? dto.getLastName() : dto.getNom();
+
         Salarie salarie = Salarie.builder()
                 .matricule(matricule)
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
+                .firstName(firstName)
+                .lastName(lastName)
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
                 .poste(dto.getPoste())
@@ -66,7 +69,7 @@ public class SalarieServiceImpl implements SalarieService {
         PeriodeEvaluation p1 = PeriodeEvaluation.builder()
                 .salarie(savedSalarie)
                 .responsable(responsable)
-                .typePeriode(TypePeriode.TROIS_MOIS)
+                .typePeriode(PeriodeType.TROIS_MOIS)
                 .dateEcheance(dateEmbauche.plusMonths(3))
                 .statut(StatutPeriode.PLANIFIEE)
                 .tokenAccesSalarie(UUID.randomUUID().toString())
@@ -81,7 +84,7 @@ public class SalarieServiceImpl implements SalarieService {
     @Transactional(readOnly = true)
     public SalarieResponseDTO getSalarieById(Long id) {
         Salarie salarie = salarieRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Salarié non trouvé ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Salarie non trouve ID: " + id));
         return mapToResponseDTO(salarie);
     }
 
@@ -97,8 +100,7 @@ public class SalarieServiceImpl implements SalarieService {
     @Transactional
     public void cloturerDemission(Long salarieId, String motif) {
         Salarie salarie = salarieRepository.findById(salarieId)
-                .orElseThrow(() -> new RuntimeException("Salarié non trouvé ID: " + salarieId));
-
+                .orElseThrow(() -> new RuntimeException("Salarie non trouve ID: " + salarieId));
         salarie.setActif(false);
         salarie.setBloqueEmails(true);
         salarie.setStatutEssai(StatutEssai.RUPTURE);
@@ -122,10 +124,11 @@ public class SalarieServiceImpl implements SalarieService {
                 .poste(salarie.getPoste())
                 .dateEmbauche(salarie.getDateEmbauche())
                 .dateFinPrevisionnelle(salarie.getDateFinPrevisionnelle())
-                .directionName(salarie.getDirection().getName())
-                .responsableNomComplet(salarie.getResponsable().getFirstName() + " " + salarie.getResponsable().getLastName())
+                .directionName(salarie.getDirection() != null ? salarie.getDirection().getName() : null)
+                .responsableNomComplet(salarie.getResponsable() != null ?
+                        salarie.getResponsable().getFirstName() + " " + salarie.getResponsable().getLastName() : null)
                 .statutEssai(salarie.getStatutEssai().name())
-                .actif(salarie.isActif())
+                .actif(Boolean.TRUE.equals(salarie.getActif()))
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.premium.essai.model;
 
 import com.premium.essai.model.enums.RecommandationDecision;
+import com.premium.essai.model.enums.RecommandationEvaluateur;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -61,4 +62,29 @@ public class EvaluationDetail {
 
     @Column(name = "donnees_formulaire_complet", columnDefinition = "TEXT")
     private String donneesFormulaireComplet;
+
+    @Column(name = "note_competences_pro")
+    private Double noteCompetencesPro;
+
+    @Column(name = "note_aptitudes_perso")
+    private Double noteAptitudesPerso;
+
+    @Column(name = "note_qse")
+    private Double noteQSE;
+
+    @Column(name = "note_globale")
+    private Double noteGlobale;
+
+    @Column(name = "commentaires_evaluateur", columnDefinition = "TEXT")
+    private String commentairesEvaluateur;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recommandation_evaluateur")
+    private RecommandationEvaluateur recommandationEvaluateur;
+
+    @Column(name = "date_soumission")
+    private LocalDate dateSoumission;
+
+    @Column(name = "json_reponses_criteres", columnDefinition = "TEXT")
+    private String jsonReponsesCriteres;
 }

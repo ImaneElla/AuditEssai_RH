@@ -1,5 +1,6 @@
 package com.premium.essai.model;
 
+import com.premium.essai.model.enums.TypeEmail;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,4 +24,8 @@ public class TemplateEmail {
 
     @Column(columnDefinition = "TEXT")
     private String contenu;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_email")
+    private TypeEmail typeEmail;
 }

@@ -16,6 +16,7 @@ public interface SalarieRepository extends JpaRepository<Salarie, Long> {
     List<Salarie> findByResponsableId(Long responsableId);
     List<Salarie> findByStatutEssai(StatutEssai statutEssai);
     List<Salarie> findByActifTrue();
+    long countByActifTrue();
     boolean existsByMatricule(String matricule);
     boolean existsByEmail(String email);
 }

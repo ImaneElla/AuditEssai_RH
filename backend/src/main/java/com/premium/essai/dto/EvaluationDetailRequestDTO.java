@@ -1,6 +1,6 @@
 package com.premium.essai.dto;
 
-import com.premium.essai.enums.RecommandationEvaluateur;
+import com.premium.essai.model.enums.RecommandationEvaluateur;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +14,7 @@ import lombok.*;
 @Builder
 public class EvaluationDetailRequestDTO {
 
-    @NotNull(message = "La note des compétences professionnelles est obligatoire")
+    @NotNull(message = "La note des competences professionnelles est obligatoire")
     @Min(value = 1, message = "La note minimale est 1")
     @Max(value = 5, message = "La note maximale est 5")
     private Double noteCompetencesPro;
@@ -33,9 +33,9 @@ public class EvaluationDetailRequestDTO {
     private String axesAmelioration;
     private String commentairesEvaluateur;
 
-    @NotNull(message = "La recommandation de l'évaluateur est obligatoire")
+    @NotNull(message = "La recommandation de l'evaluateur est obligatoire")
     private RecommandationEvaluateur recommandationEvaluateur;
 
-    @NotBlank(message = "Le détail des réponses aux 24 critères (JSON) est obligatoire")
+    @NotBlank(message = "Le detail des reponses aux criteres (JSON) est obligatoire")
     private String jsonReponsesCriteres;
 }

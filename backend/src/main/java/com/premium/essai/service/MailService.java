@@ -1,6 +1,6 @@
 package com.premium.essai.service;
 
-import com.premium.essai.entity.PeriodeEvaluation;
+import com.premium.essai.model.PeriodeEvaluation;
 
 public interface MailService {
     void sendRappelJ21(PeriodeEvaluation periode);

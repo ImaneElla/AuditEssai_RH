@@ -1,7 +1,7 @@
 package com.premium.essai.model;
 
+import com.premium.essai.model.enums.RoleDestinataire;
 import com.premium.essai.model.enums.TypeEmail;
-import com.premium.essai.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,7 +35,7 @@ public class HistoriqueEmail {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role_destinataire")
-    private UserRole roleDestinataire;
+    private RoleDestinataire roleDestinataire;
 
     private String objet;
 
@@ -52,7 +52,7 @@ public class HistoriqueEmail {
     private String statut;
 
     @Column(name = "batch_cron")
-    private String batchCron;
+    private boolean batchCron;
 
     @Column(name = "contenu_corps", columnDefinition = "TEXT")
     private String contenuCorps;

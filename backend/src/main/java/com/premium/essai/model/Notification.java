@@ -1,13 +1,12 @@
 package com.premium.essai.model;
 
+import com.premium.essai.model.enums.CibleRole;
 import com.premium.essai.model.enums.NotificationPriority;
 import com.premium.essai.model.enums.NotificationType;
-import com.premium.essai.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
@@ -35,10 +34,7 @@ public class Notification {
     private NotificationPriority priorite;
 
     @Column(name = "date_creation")
-    private LocalDate dateCreation;
-
-    @Column(name = "heure_creation")
-    private LocalTime heureCreation;
+    private LocalDateTime dateCreation;
 
     @Column(name = "est_lue")
     @Builder.Default
@@ -46,7 +42,7 @@ public class Notification {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "cible_role")
-    private UserRole cibleRole;
+    private CibleRole cibleRole;
 
     @Column(name = "lien_ecran")
     private String lienEcran;

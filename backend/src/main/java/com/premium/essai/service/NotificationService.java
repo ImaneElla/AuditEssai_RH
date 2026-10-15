@@ -1,7 +1,7 @@
 package com.premium.essai.service;
 
-import com.premium.essai.entity.Notification;
-import com.premium.essai.enums.CibleRole;
+import com.premium.essai.model.Notification;
+import com.premium.essai.model.enums.CibleRole;
 
 import java.util.List;
 

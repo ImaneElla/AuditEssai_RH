@@ -1,7 +1,7 @@
 package com.premium.essai.service.impl;
 
-import com.premium.essai.entity.Notification;
-import com.premium.essai.enums.CibleRole;
+import com.premium.essai.model.Notification;
+import com.premium.essai.model.enums.CibleRole;
 import com.premium.essai.repository.NotificationRepository;
 import com.premium.essai.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -27,21 +27,20 @@ public class NotificationServiceImpl implements NotificationService {
                 .estLue(false)
                 .dateCreation(LocalDateTime.now())
                 .build();
-
         notificationRepository.save(notification);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Notification> getNotificationsNonLues(CibleRole cibleRole) {
-        return notificationRepository.findByCibleRoleAndEstLueFalseOrderByDateCreationDesc(cibleRole);
+        return notificationRepository.findByCibleRoleAndEstLueFalse(cibleRole);
     }
 
     @Override
     @Transactional
     public void marquerCommeLue(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification non trouvée ID: " + notificationId));
+                .orElseThrow(() -> new RuntimeException("Notification non trouvee ID: " + notificationId));
         notification.setEstLue(true);
         notificationRepository.save(notification);
     }
