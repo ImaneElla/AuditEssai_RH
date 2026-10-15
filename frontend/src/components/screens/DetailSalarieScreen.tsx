@@ -53,7 +53,7 @@ const DECISION_OPTIONS: {
   },
   {
     value: 'RUPTURE',
-    label: "Fin d'essai",
+    label: "Arrêt de contrat",
     icon: AlertTriangle,
     active: 'border-red-600 bg-red-50 text-red-700',
     hover: 'hover:border-red-200',
@@ -148,7 +148,7 @@ export default function DetailSalarieScreen() {
   const motifModeles: Record<string, string> = {
     CONFIRMATION: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de confirmer son embauche définitive.\n\nMotif : `,
     RENOUVELLEMENT: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de renouveler sa période d'essai afin de poursuivre son évaluation.\n\nMotif : `,
-    RUPTURE: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de mettre fin à la période d'essai.\n\nMotif : `,
+    RUPTURE: `Suite à l'évaluation de la période d'essai de ${nomComplet} et en concertation avec ${salarie.responsableNom}, il a été décidé de procéder à l'arrêt du contrat.\n\nMotif : `,
   };
 
   const decisionLabel =
@@ -268,7 +268,7 @@ export default function DetailSalarieScreen() {
                   }
                   className="text-xs"
                 >
-                  {decisionRupture ? 'Fin de période d\'essai' :
+                  {decisionRupture ? 'Arrêt de contrat' :
                    salarie.statutEssai === 'EN_COURS' ? 'Période d\'essai en cours' :
                    salarie.statutEssai === 'CONFIRMEE' ? 'Période d\'essai confirmée' :
                    'Période renouvelée'}
@@ -312,14 +312,14 @@ export default function DetailSalarieScreen() {
         </div>
       </Card>
 
-      {/* Bandeau : fin de période d'essai */}
+      {/* Bandeau : arrêt de contrat */}
       {decisionRupture && (
         <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white">
             <AlertTriangle className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-red-700">Fin de la période d&apos;essai</p>
+            <p className="text-sm font-bold text-red-700">Arrêt de contrat</p>
             <p className="mt-0.5 text-xs text-red-700/80">
               La décision RH a été enregistrée pour {salarie.firstName} {salarie.lastName}.
               Les évaluations non terminées sont bloquées et les relances automatiques sont arrêtées.
@@ -363,7 +363,7 @@ export default function DetailSalarieScreen() {
               </div>
               <h4 className="text-xs font-semibold text-foreground">Bilan 3 Mois </h4>
               <p className="text-xs text-muted-foreground font-mono mt-0.5">{periode3M?.dateEcheance || '—'}</p>
-              <p className="text-[11px] text-muted-foreground mt-2">Fin de période d&apos;essai</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Arrêt de contrat</p>
             </div>
           ) : (
             <div className={`border rounded-xl p-4 ${
@@ -412,7 +412,7 @@ export default function DetailSalarieScreen() {
               </div>
               <h4 className="text-xs font-semibold text-foreground">Bilan 6 Mois (Décision)</h4>
               <p className="text-xs text-muted-foreground font-mono mt-0.5">—</p>
-              <p className="text-[11px] text-muted-foreground mt-2">Bloqué : fin de période d&apos;essai</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Bloqué : Arrêt de contrat</p>
             </div>
           ) : (
             <div className={`border rounded-xl p-4 ${
@@ -445,14 +445,14 @@ export default function DetailSalarieScreen() {
           <div className={`border rounded-xl p-4 ${decisionRupture ? 'border-red-200 bg-red-50/60' : 'border-border bg-secondary/30'}`}>
             <div className="flex items-center justify-between mb-2">
               <Badge variant={decisionRupture ? 'destructive' : 'secondary'} className="text-[10px]">
-                {decisionRupture ? 'Fin de période' : 'Étape 4 • Décision'}
+                {decisionRupture ? 'Arrêt de contrat' : 'Étape 4 • Décision'}
               </Badge>
               <ShieldCheck className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
             </div>
             <h4 className="text-xs font-semibold text-foreground">Terme Période d&apos;Essai</h4>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">{salarie.dateFinPrevisionnelle}</p>
             <p className="text-[11px] text-muted-foreground mt-2">
-              {decisionRupture ? 'Période d\'essai terminée' : 'Confirmation ou renouvellement'}
+              {decisionRupture ? 'Arrêt de contrat' : 'Confirmation ou renouvellement'}
             </p>
           </div>
         </div>
@@ -553,7 +553,7 @@ export default function DetailSalarieScreen() {
                     }
                     className="text-[10px]"
                   >
-                    {p.statut === 'EN_COURS' ? 'En cours' : p.statut === 'EN_RELANCE' ? 'En relance' : p.statut === 'EN_RETARD' ? 'En retard' : p.statut === 'COMPLETEE' ? 'Complétée' : p.statut === 'VALIDEE_RH' ? 'Validée RH' : p.statut === 'RUPTURE' ? 'Fin de période' : p.statut}
+                    {p.statut === 'EN_COURS' ? 'En cours' : p.statut === 'EN_RELANCE' ? 'En relance' : p.statut === 'EN_RETARD' ? 'En retard' : p.statut === 'COMPLETEE' ? 'Complétée' : p.statut === 'VALIDEE_RH' ? 'Validée RH' : p.statut === 'RUPTURE' ? 'Arrêt de contrat' : p.statut}
                   </Badge>
                 </div>
 

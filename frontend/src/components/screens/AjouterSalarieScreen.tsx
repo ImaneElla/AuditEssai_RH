@@ -300,7 +300,7 @@ const addMonthsFormatted = (dateStr: string, months: number): string => {
               <div className="p-3 rounded-xl bg-card border border-border shadow-2xs">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
                   <span>Terme Initial</span>
-                  <Badge variant="appleGreen" className="text-[10px]">Fin Essai</Badge>
+                  <Badge variant="appleGreen" className="text-[10px]">Arrêt de contrat</Badge>
                 </div>
                 <p className="font-bold text-foreground text-sm font-mono">{calculatedFin || '—'}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">

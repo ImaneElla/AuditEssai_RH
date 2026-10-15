@@ -44,7 +44,7 @@ const statutLabel = (s: string) =>
     ? "Confirmée"
     : s === "RENOUVELEE"
     ? "Renouvelée"
-    : "Rupture";
+    : "Arrêt de contrat";
 
 const statutVariant = (s: string): "appleGreen" | "secondary" | "destructive" =>
   s === "CONFIRMEE" ? "appleGreen" : s === "RUPTURE" ? "destructive" : "secondary";
@@ -281,7 +281,7 @@ export default function SalariesListScreen() {
               <option value="EN_COURS">En cours d&apos;essai</option>
               <option value="RENOUVELEE">Renouvelée</option>
               <option value="CONFIRMEE">Confirmée</option>
-              <option value="RUPTURE">Rupture</option>
+              <option value="RUPTURE">Arrêt de contrat</option>
             </select>
 
             <select

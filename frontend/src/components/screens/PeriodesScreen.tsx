@@ -194,7 +194,7 @@ export default function PeriodesScreen() {
       case 'EN_RETARD': return 'En retard';
       case 'COMPLETEE': return 'Complétée';
       case 'VALIDEE_RH': return 'Validée RH';
-      case 'RUPTURE': return 'Rupture';
+      case 'RUPTURE': return 'Arrêt de contrat';
       case 'PLANIFIEE': return 'Planifiée';
       case 'EMAIL_ENVOYE': return 'Mail envoyé';
       default: return s;
@@ -329,7 +329,7 @@ export default function PeriodesScreen() {
             <option value="EN_RELANCE">En relance (J-14)</option>
             <option value="EN_RETARD">En retard (J-7)</option>
             <option value="COMPLETEE">Complétée</option>
-            <option value="RUPTURE">Rupture</option>
+            <option value="RUPTURE">Arrêt de contrat</option>
           </select>
         </div>
       </Card>

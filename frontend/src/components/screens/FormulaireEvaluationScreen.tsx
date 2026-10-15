@@ -848,20 +848,20 @@ export default function FormulaireEvaluationScreen() {
                     onChange={() => setDecisionValidation('RUPTURE')}
                     className="w-4 h-4 appearance-none rounded-full border-2 border-zinc-500 bg-white checked:border-[#A30000] checked:bg-[#A30000] checked:shadow-[inset_0_0_0_3px_#fff] [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
                   />
-                  <span>Rupture période d’essai</span>
+                  <span>Arr&#234;t de contrat</span>
                 </label>
               </div>
 
               {decisionValidation === 'RUPTURE' && (
                 <div className="pt-2 border-t border-zinc-200 space-y-1">
                   <label className="font-bold text-red-700 block">
-                    Motif de la rupture (facultatif) :
+                    Motif de l'arrêt de contrat (facultatif) :
                   </label>
                   <textarea
                     rows={2}
                     value={recommandationCommentaire}
                     onChange={(e) => setRecommandationCommentaire(e.target.value)}
-                    placeholder="Précisez ici le motif ou les raisons de la rupture..."
+                    placeholder="Précisez ici le motif ou les raisons de l'arrêt de contrat..."
                     className="w-full p-2 text-xs border border-red-300 bg-red-50/30 rounded focus:border-red-600 outline-none"
                   />
                 </div>

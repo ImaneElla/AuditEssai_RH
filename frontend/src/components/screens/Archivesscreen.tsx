@@ -21,7 +21,7 @@ import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 const issueLabel = (s: Salarie) =>
   s.statutEssai === 'RUPTURE'
-    ? "Fin de période d'essai"
+    ? "Arrêt de contrat"
     : s.statutEssai === 'CONFIRMEE'
     ? 'Confirmé'
     : s.statutEssai;
@@ -90,7 +90,7 @@ export default function ArchivesScreen() {
         <div>
           <h2 className="text-lg md:text-xl font-bold text-foreground tracking-tight">Archives</h2>
           <p className="text-xs text-muted-foreground">
-            Salariés dont la période d&apos;essai est terminée (confirmés ou fin d&apos;essai). Consultez leur dossier
+            Salariés dont la période d&apos;essai est terminée (confirmés ou arrêt de contrat). Consultez leur dossier
             ou restaurez-les dans la liste active.
           </p>
         </div>
@@ -107,7 +107,7 @@ export default function ArchivesScreen() {
           <p className="text-2xl font-bold text-apple-green mt-1">{countConfirmes}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Fins d&apos;essai</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Arrêts de contrat</p>
           <p className="text-2xl font-bold text-destructive mt-1">{countRuptures}</p>
         </Card>
       </div>
@@ -136,7 +136,7 @@ export default function ArchivesScreen() {
           >
             <option value="ALL">Toutes les issues</option>
             <option value="CONFIRMEE">Confirmés</option>
-            <option value="RUPTURE">Fin d&apos;essai</option>
+            <option value="RUPTURE">Arrêt de contrat</option>
           </select>
         </div>
       </Card>
@@ -148,7 +148,7 @@ export default function ArchivesScreen() {
             <UserRound className="w-8 h-8 mx-auto mb-3 opacity-50" />
             <p className="text-sm font-medium">Aucun salarié archivé</p>
             <p className="text-xs mt-1">
-              Les salariés confirmés ou en fin de période d&apos;essai apparaîtront ici.
+              Les salariés confirmés ou avec arrêt de contrat apparaîtront ici.
             </p>
           </div>
         </Card>
@@ -280,7 +280,7 @@ export default function ArchivesScreen() {
               <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] text-red-700">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  Sa période d&apos;essai reste en statut « Fin d&apos;essai » : les évaluations restent bloquées et
+                  Sa période d&apos;essai reste en statut « Arrêt de contrat » : les évaluations restent bloquées et
                   les relances automatiques arrêtées.
                 </span>
               </div>
