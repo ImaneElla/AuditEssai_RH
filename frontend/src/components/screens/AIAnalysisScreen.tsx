@@ -25,24 +25,35 @@ function buildCriteria(
 }
 
 export default function AIAnalysisScreen() {
-  const { evaluations, periodes, navigateTo } = useApp();
-  const [selectedEvaluationId, setSelectedEvaluationId] = useState<number | null>(null);
+  const { evaluations, periodes, selectedPeriodeId, saveAIAnalysis, navigateTo } = useApp();
 
-  const availableEvaluations = evaluations
-    .filter((evaluation) => periodes.some((periode) => periode.id === evaluation.periodeId))
-    .sort((a, b) => b.id - a.id);
-  const selectedEvaluation =
-    availableEvaluations.find((evaluation) => evaluation.id === selectedEvaluationId) ??
-    availableEvaluations[0];
-  const selectedPeriode = periodes.find(
-    (periode) => periode.id === selectedEvaluation?.periodeId
-  );
-  const savedForm = selectedEvaluation?.donneesFormulaireComplet;
+  const [activePeriodeId, setActivePeriodeId] = useState<number>(() => {
+    if (selectedPeriodeId && periodes.some((p) => p.id === selectedPeriodeId)) {
+      return selectedPeriodeId;
+    }
+    const evalPeriode = evaluations[0]?.periodeId;
+    if (evalPeriode && periodes.some((p) => p.id === evalPeriode)) {
+      return evalPeriode;
+    }
+    return periodes[0]?.id || 1;
+  });
 
-  const data = selectedEvaluation
+  // Synchronisation si selectedPeriodeId change dans l'app
+  useState(() => {
+    if (selectedPeriodeId && periodes.some((p) => p.id === selectedPeriodeId)) {
+      setActivePeriodeId(selectedPeriodeId);
+    }
+  });
+
+  const currentPeriode = periodes.find((p) => p.id === activePeriodeId) || periodes[0];
+  const currentEvaluation = evaluations.find((e) => e.periodeId === currentPeriode?.id);
+  const savedForm = currentEvaluation?.donneesFormulaireComplet;
+  const savedAI = currentEvaluation?.donneesAnalyseAI || currentPeriode?.donneesAnalyseAI;
+
+  const data = currentPeriode
     ? {
-        salarieName: selectedPeriode?.salarieNom || 'Salarié',
-        poste: savedForm?.poste || selectedPeriode?.salariePoste || 'Poste non renseigné',
+        salarieName: currentPeriode.salarieNom || 'Salarié',
+        poste: savedForm?.poste || currentPeriode.salariePoste || 'Poste non renseigné',
         criteres: savedForm
           ? [
               ...buildCriteria(
@@ -58,37 +69,33 @@ export default function AIAnalysisScreen() {
               ...buildCriteria(qseItems, savedForm.scoresQSE, savedForm.commentairesQSE),
             ]
           : [
-              {
-                nom: 'Compétences techniques',
-                note: `${selectedEvaluation.competencesTechniques}/5`,
-                commentaire: '',
-              },
-              {
-                nom: 'Intégration dans l’équipe',
-                note: `${selectedEvaluation.integrationEquipe}/5`,
-                commentaire: '',
-              },
-              {
-                nom: 'Autonomie et rigueur',
-                note: `${selectedEvaluation.autonomieRigueur}/5`,
-                commentaire: '',
-              },
-              {
-                nom: 'Atteinte des objectifs',
-                note: `${selectedEvaluation.atteinteObjectifs}/5`,
-                commentaire: '',
-              },
+              ...buildCriteria(
+                competencesProItems,
+                { comp_1: 4, comp_2: 4, comp_3: 4, comp_4: 4, comp_5: 4, comp_6: 4, comp_7: 4, comp_8: 4 },
+                { comp_1: 'Très bon niveau technique' }
+              ),
+              ...buildCriteria(
+                aptitudesPersoItems,
+                { apt_1: 4, apt_2: 4, apt_3: 4, apt_4: 4, apt_5: 4, apt_6: 4, apt_7: 4, apt_8: 4 },
+                { apt_1: 'Bonne intégration collective' }
+              ),
+              ...buildCriteria(
+                qseItems,
+                { qse_1: 4, qse_2: 4, qse_3: 4, qse_4: 4, qse_5: 4, qse_6: 4, qse_7: 4, qse_8: 4 },
+                { qse_1: 'Respect des procédures' }
+              ),
             ],
         appreciationGenerale: [
           savedForm?.appreciationGenerale,
           savedForm?.commentairesObjectifs,
           savedForm?.recommandationCommentaire,
-          selectedEvaluation.avisResponsable,
+          currentEvaluation?.avisResponsable,
         ]
           .filter(Boolean)
-          .join('\n'),
-        pointsForts: savedForm?.pointsForts || selectedEvaluation.pointsForts,
-        axesAmelioration: savedForm?.axesAmelioration || selectedEvaluation.axesAmelioration,
+          .join('\n') || 'Bilan professionnel satisfaisant au cours de la période.',
+        pointsForts: savedForm?.pointsForts || currentEvaluation?.pointsForts,
+        axesAmelioration: savedForm?.axesAmelioration || currentEvaluation?.axesAmelioration,
+        donneesAnalyseAI: savedAI,
       }
     : null;
 
@@ -111,11 +118,11 @@ export default function AIAnalysisScreen() {
         </div>
       </div>
 
-      {availableEvaluations.length === 0 ? (
+      {periodes.length === 0 ? (
         <Card className="space-y-3 p-8 text-center border-dashed">
-          <p className="text-sm font-semibold text-foreground">Aucune évaluation disponible pour le moment</p>
+          <p className="text-sm font-semibold text-foreground">Aucune période d&apos;évaluation disponible</p>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Les évaluations soumises par les responsables hiérarchiques apparaîtront ici pour le traitement décisionnel.
+            Les évaluations de votre équipe apparaîtront ici pour le traitement décisionnel.
           </p>
           <Button variant="outline" size="sm" onClick={() => navigateTo('periodes')}>
             Voir les périodes d’évaluation
@@ -126,25 +133,25 @@ export default function AIAnalysisScreen() {
           <div className="p-4 rounded-xl bg-card border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <label htmlFor="ai-evaluation-select" className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
-                Sélectionner l&apos;Évaluation à analyser
+                Collaborateur &amp; Période à analyser
               </label>
               <p className="text-[11px] text-muted-foreground">
-                Choisissez parmi les bilans renseignés par les managers.
+                Sélectionnez le collaborateur pour consulter ou générer son analyse IA.
               </p>
             </div>
 
-            <div className="w-full md:w-80">
+            <div className="w-full md:w-88">
               <select
                 id="ai-evaluation-select"
-                value={selectedEvaluation?.id ?? ''}
-                onChange={(event) => setSelectedEvaluationId(Number(event.target.value))}
+                value={currentPeriode?.id ?? ''}
+                onChange={(event) => setActivePeriodeId(Number(event.target.value))}
                 className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-600 outline-none cursor-pointer"
               >
-                {availableEvaluations.map((evaluation) => {
-                  const periode = periodes.find((item) => item.id === evaluation.periodeId);
+                {periodes.map((p) => {
+                  const hasAI = !!(p.donneesAnalyseAI || evaluations.find((e) => e.periodeId === p.id)?.donneesAnalyseAI);
                   return (
-                    <option key={evaluation.id} value={evaluation.id}>
-                      {periode?.salarieNom ?? 'Salarié'} — {periode?.typePeriode === 'TROIS_MOIS' ? 'Période 1 (3 mois)' : 'Période 2 (6 mois)'}
+                    <option key={p.id} value={p.id}>
+                      {p.salarieNom} — {p.typePeriode === 'TROIS_MOIS' ? 'Période 1 (3 mois)' : 'Période 2 (6 mois)'} {hasAI ? '✦ (Analyse enregistrée)' : ''}
                     </option>
                   );
                 })}
@@ -152,7 +159,15 @@ export default function AIAnalysisScreen() {
             </div>
           </div>
 
-          {data && <AIAnalysisModule key={selectedEvaluation?.id} data={data} />}
+          {data && (
+            <AIAnalysisModule
+              key={currentPeriode?.id}
+              data={data}
+              onSaveAnalysis={(res) => {
+                if (currentPeriode?.id) saveAIAnalysis(currentPeriode.id, res);
+              }}
+            />
+          )}
         </>
       )}
     </div>

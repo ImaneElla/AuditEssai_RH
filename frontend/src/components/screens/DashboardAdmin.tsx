@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import DashboardResponsable from './DashboardResponsable';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 // =========================================================================
 // 1. DASHBOARD RH / ADMIN (SUPERVISION GLOBALE DE TOUT LE SYSTÈME)
@@ -53,7 +54,14 @@ function DashboardRH() {
   const totalEnCours = salaries.filter(s => s.actif !== false && (s.statutEssai === 'EN_COURS' || s.statutEssai === 'RENOUVELEE')).length;
   const totalTitularises = salaries.filter(s => s.statutEssai === 'CONFIRMEE').length;
   const totalRuptures = salaries.filter(s => s.statutEssai === 'RUPTURE').length;
-  const totalDecisionsFinales = totalTitularises + totalRuptures;
+  
+  // Total des salariés ayant finalisé / terminé leur période d'essai
+  const personnesAyantFiniPeriodeIds = new Set([
+    ...salaries.filter(s => s.statutEssai === 'CONFIRMEE' || s.statutEssai === 'RUPTURE' || s.PeriodeActuel === 'TERMINE' || s.actif === false).map(s => s.id),
+    ...periodes.filter(p => p.statut === 'COMPLETEE' || p.statut === 'VALIDEE_RH' || p.statut === 'RUPTURE').map(p => p.salarieId)
+  ]);
+  const totalFinalisees = personnesAyantFiniPeriodeIds.size || (totalTitularises + totalRuptures);
+  const totalDecisionsFinales = totalFinalisees;
   const tauxTitularisation = totalDecisionsFinales
     ? Math.round((totalTitularises / totalDecisionsFinales) * 100)
     : 0;
@@ -203,7 +211,7 @@ function DashboardRH() {
       ================================================================ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        {/* 0 — TOTAL GLOBAL (DÉCISIONS TRAITÉES) */}
+        {/* 0 — TOTAL FINALISÉES (SALARIÉS AYANT TERMINÉ LEUR PÉRIODE) */}
         <Card
           onClick={() => navigateTo('archive')}
           className="group relative overflow-hidden cursor-pointer bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-red-200"
@@ -217,7 +225,7 @@ function DashboardRH() {
                   <Users className="w-5 h-5 text-red-600 group-hover:text-white transition-colors" strokeWidth={2} />
                 </div>
                 <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-600">
-                  TOTAL GLOBAL
+                  TOTAL FINALISÉES
                 </span>
               </div>
 
@@ -228,17 +236,17 @@ function DashboardRH() {
 
             <div className="flex items-end gap-3">
               <span className="text-4xl font-black tracking-tight leading-none text-zinc-950">
-                {totalDecisionsFinales}
+                {totalFinalisees}
               </span>
               <span className="text-[11px] text-zinc-500 font-medium mb-1">
-                décisions finalisées ({totalTitularises} titu + {totalRuptures} rupt)
+                salariés ayant terminé ({totalTitularises} titu + {totalRuptures} rupt)
               </span>
             </div>
 
             <div className="mt-5">
               <Badge className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[10px] font-semibold px-2.5 py-1">
                 <CheckCircle2 className="w-3 h-3 mr-1" />
-                8 Titularisés + 3 Ruptures
+                {totalTitularises} Titularisés + {totalRuptures} Ruptures
               </Badge>
             </div>
           </div>
@@ -578,8 +586,7 @@ function DashboardRH() {
                   return (
                     <div
                       key={periode.id}
-                      onClick={() => navigateTo('formulaire-evaluation', { periodeId: periode.id })}
-                      className={`p-3.5 transition-colors flex items-center justify-between gap-3 cursor-pointer ${
+                      className={`p-3.5 transition-colors flex items-center justify-between gap-3 ${
                         isOverdue ? 'bg-zinc-50/80 hover:bg-zinc-100/60' : 'hover:bg-secondary/40'
                       }`}
                     >
@@ -590,7 +597,8 @@ function DashboardRH() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span
-                              className="font-semibold text-foreground text-xs hover:underline truncate tracking-tight"
+                              onClick={() => navigateTo('detail-salarie', { salarieId: periode.salarieId })}
+                              className="font-semibold text-foreground text-xs hover:underline cursor-pointer truncate tracking-tight"
                             >
                               {periode.salarieNom}
                             </span>
@@ -607,7 +615,7 @@ function DashboardRH() {
                         </div>
                       </div>
 
-                      {/* STATUT AU LIEU DU BOUTON CONSULTER */}
+                      {/* STATUT + BOUTON DE CONSULTATION À DEUX CHOIX */}
                       <div className="flex items-center gap-2 shrink-0">
                         <span
                           className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs whitespace-nowrap ${
@@ -630,6 +638,13 @@ function DashboardRH() {
                             ? 'Planifiée'
                             : periode.statut}
                         </span>
+
+                        {(periode.statut === 'COMPLETEE' ||
+                          periode.statut === 'VALIDEE_RH' ||
+                          periode.statut === 'CONFIRMEE' ||
+                          periode.statut === 'RUPTURE') && (
+                          <ConsulterBouton periode={periode} size="sm" />
+                        )}
                       </div>
                     </div>
                   );

@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 const issueLabel = (s: Salarie) =>
   s.statutEssai === 'RUPTURE'
@@ -213,15 +214,11 @@ export default function ArchivesScreen() {
 
                       <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigateTo('detail-salarie', { salarieId: s.id })}
-                            className="cursor-pointer h-8 px-3 rounded-lg text-xs font-medium inline-flex items-center gap-1.5"
-                          >
-                            <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
-                            Consulter
-                          </Button>
+                          <ConsulterBouton
+                            salarieId={s.id}
+                            salarieNom={`${s.firstName} ${s.lastName}`}
+                            size="default"
+                          />
 
                           {isRH && (
                             <Button

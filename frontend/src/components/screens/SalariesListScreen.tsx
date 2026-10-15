@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import ConsulterBouton from "@/components/common/ConsulterBouton";
 
 const inputBase =
   "w-full text-xs px-3 py-2 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-card focus:outline-none transition-all text-foreground";
@@ -475,19 +476,28 @@ export default function SalariesListScreen() {
                       </td>
 
                       <td className="py-3.5 px-4 align-middle whitespace-nowrap text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigateTo("detail-salarie", {
-                              salarieId: salarie.id,
-                            })
-                          }
-                          className="cursor-pointer h-8 px-3 rounded-lg border-border hover:bg-secondary text-foreground text-xs font-medium inline-flex items-center gap-1.5"
-                        >
-                          <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
-                          Détail
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigateTo("detail-salarie", {
+                                salarieId: salarie.id,
+                              })
+                            }
+                            className="cursor-pointer h-8 px-3 rounded-lg border-border hover:bg-secondary text-foreground text-xs font-medium inline-flex items-center gap-1.5"
+                          >
+                            <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
+                            Détail
+                          </Button>
+                          {['CONFIRMEE', 'RUPTURE'].includes(salarie.statutEssai) && (
+                            <ConsulterBouton
+                              salarieId={salarie.id}
+                              salarieNom={`${salarie.firstName} ${salarie.lastName}`}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

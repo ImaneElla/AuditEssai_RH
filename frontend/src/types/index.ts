@@ -106,6 +106,7 @@ export interface PeriodeEvaluation {
   etapeEV?: boolean;
   etapeEvaluation?: boolean;
   etapeSH?: boolean;
+  donneesAnalyseAI?: any;
 }
 
 export interface FormulaireEvaluationData {
@@ -163,6 +164,7 @@ export interface EvaluationDetail {
   signatureResponsable: string;
   signatureSalarie?: string;
   donneesFormulaireComplet?: FormulaireEvaluationData;
+  donneesAnalyseAI?: any;
 }
 
 export type TypeEmail = 

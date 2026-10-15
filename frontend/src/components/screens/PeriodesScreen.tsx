@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 type KpiFilter = 'ALL' | 'ACTIVES' | 'ATTENTE' | 'RETARD';
 
@@ -462,17 +463,8 @@ export default function PeriodesScreen() {
                           <span>Détails</span>
                         </Button>
 
-                        {(!isRH || formulaireRempli) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigateTo('formulaire-evaluation', { periodeId: p.id })
-                            }
-                            className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
-                          >
-                            {formulaireRempli ? 'Consulter' : 'Formulaire'}
-                          </Button>
+                        {['COMPLETEE', 'VALIDEE_RH', 'CONFIRMEE', 'RUPTURE'].includes(p.statut) && (
+                          <ConsulterBouton periode={p} size="sm" />
                         )}
                       </div>
                     </td>

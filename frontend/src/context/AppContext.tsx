@@ -95,7 +95,7 @@ interface AppContextType {
   addResponsable: (data: { firstName: string; lastName: string; email: string; directionId: number; phone?: string; poste?: string; }) => void;
   updateResponsable: (id: number, data: any) => void; deleteResponsable: (id: number) => boolean;
   relancerRetard: (id: number) => void; relancerTousLesRetards: () => void;
-  submitEvaluation: (data: any) => void; validerDecisionRH: (id: number, decision: DecisionPeriode, motif: string) => void;
+  submitEvaluation: (data: any) => void; saveAIAnalysis: (periodeId: number, analysisResult: any) => void; validerDecisionRH: (id: number, decision: DecisionPeriode, motif: string) => void;
   triggerCronBatch0900: () => { emailsCount: number; retardsCount: number };
   markNotificationAsRead: (id: number) => void; markAllNotificationsAsRead: () => void;
   toastMessage: string | null; showToast: (msg: string) => void;
@@ -129,6 +129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [realEmails, setRealEmails] = useState<HistoriqueEmail[]>([]);
   const [realNotifications, setRealNotifications] = useState<NotificationItem[]>([]);
   const [parametres, setParametres] = useState<Parametres>(initialParametres);
+  const [aiAnalysesMap, setAiAnalysesMap] = useState<Record<number, any>>({});
 
   const openAddSalarieModal = () => setIsAddSalarieModalOpen(true);
   const closeAddSalarieModal = () => setIsAddSalarieModalOpen(false);
@@ -151,6 +152,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setRealDirections(saved('gp_directions'));
         setRealUsers(saved('gp_users'));
 
+        const savedAI = localStorage.getItem('gp_ai_analyses');
+        if (savedAI) setAiAnalysesMap(JSON.parse(savedAI));
+
         const savedParametres = localStorage.getItem('gp_parametres');
         if (savedParametres) setParametres(JSON.parse(savedParametres));
       } catch (err) {
@@ -167,6 +171,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isDemoMode, isLoaded]);
 
+  // SAVE AI ANALYSES
+  React.useEffect(() => {
+    if (isLoaded && typeof window !== 'undefined') {
+      localStorage.setItem('gp_ai_analyses', JSON.stringify(aiAnalysesMap));
+    }
+  }, [aiAnalysesMap, isLoaded]);
+
   // TOGGLE DEMO MODE
   const toggleDemoMode = () => {
     setIsDemoMode(prev => {
@@ -181,8 +192,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const responsables = useMemo(() => isDemoMode ? initialResponsables : realResponsables, [isDemoMode, realResponsables]);
   const users = useMemo(() => isDemoMode ? initialUsers : realUsers, [isDemoMode, realUsers]);
   const salariesList = useMemo(() => isDemoMode ? initialSalaries : realSalariesList, [isDemoMode, realSalariesList]);
-  const periodesList = useMemo(() => isDemoMode ? initialPeriodes : realPeriodesList, [isDemoMode, realPeriodesList]);
-  const evaluations = useMemo(() => isDemoMode ? initialEvaluations : realEvaluations, [isDemoMode, realEvaluations]);
+  const periodesList = useMemo(() => {
+    const list = isDemoMode ? initialPeriodes : realPeriodesList;
+    return list.map(p => ({
+      ...p,
+      donneesAnalyseAI: aiAnalysesMap[p.id] || p.donneesAnalyseAI
+    }));
+  }, [isDemoMode, realPeriodesList, aiAnalysesMap]);
+  const evaluations = useMemo(() => {
+    const list = isDemoMode ? initialEvaluations : realEvaluations;
+    return list.map(e => ({
+      ...e,
+      donneesAnalyseAI: aiAnalysesMap[e.periodeId] || e.donneesAnalyseAI
+    }));
+  }, [isDemoMode, realEvaluations, aiAnalysesMap]);
   const emails = useMemo(() => isDemoMode ? initialEmails : realEmails, [isDemoMode, realEmails]);
   const notifications = useMemo(() => isDemoMode ? initialNotifications : realNotifications, [isDemoMode, realNotifications]);
 
@@ -348,7 +371,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const relancerRetard = (periodeId: number) => { showToast('Relance envoyée.'); };
   const relancerTousLesRetards = () => { showToast('Relances envoyées.'); };
-  const submitEvaluation = (data: any) => { showToast('Évaluation enregistrée.'); navigateTo('periodes'); };
+
+  const saveAIAnalysis = (periodeId: number, analysisResult: any) => {
+    setAiAnalysesMap(prev => ({ ...prev, [periodeId]: analysisResult }));
+    setRealEvaluations(prev => {
+      const idx = prev.findIndex(e => e.periodeId === periodeId);
+      if (idx !== -1) {
+        return prev.map(e => e.periodeId === periodeId ? { ...e, donneesAnalyseAI: analysisResult } : e);
+      }
+      const newEval: EvaluationDetail = {
+        id: (prev.length > 0 ? Math.max(...prev.map(e => e.id)) : 100) + 1,
+        periodeId,
+        competencesTechniques: Math.round(analysisResult.moyenneGlobale || 4),
+        integrationEquipe: Math.round(analysisResult.moyenneGlobale || 4),
+        autonomieRigueur: Math.round(analysisResult.moyenneGlobale || 4),
+        atteinteObjectifs: Math.round(analysisResult.moyenneGlobale || 4),
+        pointsForts: Array.isArray(analysisResult.pointsForts) ? analysisResult.pointsForts.join('\n• ') : '',
+        axesAmelioration: Array.isArray(analysisResult.axesAmelioration) ? analysisResult.axesAmelioration.join('\n• ') : '',
+        avisResponsable: analysisResult.syntheseTableau?.[0]?.point3_syntheseMoyenne || '',
+        recommandation: 'VALIDATION',
+        dateEvaluation: new Date().toISOString().split('T')[0],
+        signatureResponsable: 'Généré par IA',
+        donneesAnalyseAI: analysisResult,
+      };
+      return [newEval, ...prev];
+    });
+    setRealPeriodesList(prev => prev.map(p => p.id === periodeId ? { ...p, donneesAnalyseAI: analysisResult } : p));
+    showToast('Analyse IA enregistrée avec succès.');
+  };
+
+  const submitEvaluation = (data: any) => {
+    const analysisForPeriode = aiAnalysesMap[data.periodeId] || data.donneesAnalyseAI;
+    const newEval: EvaluationDetail = {
+      id: (realEvaluations.length > 0 ? Math.max(...realEvaluations.map(e => e.id)) : (initialEvaluations.length > 0 ? Math.max(...initialEvaluations.map(e => e.id)) : 0)) + 1,
+      periodeId: data.periodeId,
+      competencesTechniques: data.competencesTechniques || 4,
+      integrationEquipe: data.integrationEquipe || 4,
+      autonomieRigueur: data.autonomieRigueur || 4,
+      atteinteObjectifs: data.atteinteObjectifs || 4,
+      pointsForts: data.pointsForts || '',
+      axesAmelioration: data.axesAmelioration || '',
+      avisResponsable: data.avisResponsable || '',
+      avisSalarie: data.avisSalarie || '',
+      recommandation: data.recommandation || 'VALIDATION',
+      dateEvaluation: data.dateEvaluation || new Date().toISOString().split('T')[0],
+      signatureResponsable: data.signatureResponsable || 'Validé',
+      donneesFormulaireComplet: data.formulaireComplet,
+      donneesAnalyseAI: analysisForPeriode,
+    };
+    setRealEvaluations(prev => [newEval, ...prev.filter(e => e.periodeId !== data.periodeId)]);
+    setRealPeriodesList(prev => prev.map(p => p.id === data.periodeId ? { ...p, statut: 'COMPLETEE', donneesAnalyseAI: analysisForPeriode } : p));
+    showToast('Évaluation et analyse enregistrées avec succès.');
+    navigateTo('periodes');
+  };
+
   const validerDecisionRH = (id: number, decision: DecisionPeriode, motif: string) => { showToast(`Décision ${decision} validée.`); };
   const triggerCronBatch0900 = () => { showToast('Batch exécuté.'); return { emailsCount: 0, retardsCount: 0 }; };
   const markNotificationAsRead = (id: number) => setRealNotifications(prev => prev.map(n => n.id === id ? { ...n, estLue: true } : n));
@@ -361,7 +437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isEmailModalOpen, isAddSalarieModalOpen, openAddSalarieModal, closeAddSalarieModal, isSidebarCollapsed, setIsSidebarCollapsed, toggleSidebar,
         parametres, updateParametres, isLoaded, isDemoMode, toggleDemoMode, directions, responsables, users, allSalaries: salariesList, salaries, archives, allPeriodes: periodesList, periodes,
         evaluations, emails, notifications, addSalarie, updateSalarie, deleteSalarie, restaurerSalarie, addResponsable, updateResponsable, deleteResponsable,
-        relancerRetard, relancerTousLesRetards, submitEvaluation, validerDecisionRH, triggerCronBatch0900, markNotificationAsRead, markAllNotificationsAsRead,
+        relancerRetard, relancerTousLesRetards, submitEvaluation, saveAIAnalysis, validerDecisionRH, triggerCronBatch0900, markNotificationAsRead, markAllNotificationsAsRead,
         toastMessage, showToast
       }}>
       {children}

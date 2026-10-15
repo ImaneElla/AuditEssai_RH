@@ -26,6 +26,7 @@ import { DecisionPeriode } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 // ─── Options de décision RH (3 boutons) ─────────────────────────────────
 // ⚠️ Vérifiez que ces valeurs correspondent à votre type DecisionPeriode
@@ -595,15 +596,7 @@ export default function DetailSalarieScreen() {
                           {p.decisionFinale || 'VALIDATION'}
                         </strong>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                        className="h-7 text-xs flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
-                        <span>Consulter le bilan</span>
-                      </Button>
+                      <ConsulterBouton periode={p} size="sm" />
                     </div>
                   </div>
                 ) : (

@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 import {
   AlertTriangle,
   Bell,
@@ -725,29 +726,7 @@ export default function DashboardResponsable() {
                       )}
 
                       {isCompletee && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            navigateTo("formulaire-evaluation", {
-                              periodeId: periode.id,
-                            })
-                          }
-                          className="
-                            h-8
-                            rounded-lg
-                            border-zinc-200
-                            text-[10px]
-                            font-semibold
-                            cursor-pointer
-                            bg-zinc-100
-                            text-zinc-800
-                            hover:bg-zinc-200
-                          "
-                        >
-                          Consulter
-                          <ChevronRight className="ml-1 h-3 w-3" />
-                        </Button>
+                        <ConsulterBouton periode={periode} size="sm" />
                       )}
 
                       {isEnCoursOrRelance && (

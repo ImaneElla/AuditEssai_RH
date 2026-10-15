@@ -5,6 +5,7 @@ import { AlertTriangle, Clock, CheckCircle2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import ConsulterBouton from '@/components/common/ConsulterBouton';
 
 export default function RetardsScreen() {
   const { periodes, navigateTo, currentRole } = useApp();
@@ -230,14 +231,7 @@ export default function RetardsScreen() {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {isRH ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}
-                              className="text-xs h-7 cursor-pointer border-border bg-gradient-to-br from-red-500 to-red-900 text-white hover:bg-secondary"
-                            >
-                              Consulter
-                            </Button>
+                            <ConsulterBouton periode={p} size="sm" />
                           ) : (
                             <Button
                               onClick={() => navigateTo('formulaire-evaluation', { periodeId: p.id })}

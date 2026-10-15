@@ -37,6 +37,7 @@ export interface EvaluationData {
   appreciationGenerale?: string;
   pointsForts?: string;
   axesAmelioration?: string;
+  donneesAnalyseAI?: AIAnalysisResult;
 }
 
 export interface SyntheseTableauRow {
@@ -62,15 +63,22 @@ export interface AIAnalysisResult {
 interface AIAnalysisModuleProps {
   data: EvaluationData;
   onApplyToForm?: (pointsFortsText: string, axesAmeliorationText: string, syntheseText: string) => void;
+  onSaveAnalysis?: (result: AIAnalysisResult) => void;
 }
 
-export default function AIAnalysisModule({ data, onApplyToForm }: AIAnalysisModuleProps) {
+export default function AIAnalysisModule({ data, onApplyToForm, onSaveAnalysis }: AIAnalysisModuleProps) {
   const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(data.donneesAnalyseAI || null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'ALL' | 'TABLE' | 'PLAN'>('ALL');
+
+  React.useEffect(() => {
+    if (data.donneesAnalyseAI) {
+      setAnalysis(data.donneesAnalyseAI);
+    }
+  }, [data.donneesAnalyseAI]);
 
   const generateAnalysis = async () => {
     setLoading(true);
@@ -88,6 +96,9 @@ export default function AIAnalysisModule({ data, onApplyToForm }: AIAnalysisModu
         throw new Error(result.error || "Une erreur est survenue pendant l’analyse.");
       }
       setAnalysis(result);
+      if (onSaveAnalysis) {
+        onSaveAnalysis(result);
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue pendant l’analyse.");
     } finally {
